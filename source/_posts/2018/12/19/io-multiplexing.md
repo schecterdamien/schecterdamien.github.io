@@ -36,6 +36,7 @@ tags: linux
         1. 进程进行aio_read系统调用之后，会直接返回。然后等数据准备好之后，内核又把数据复制到进场，然后通知进程，在linux中通知的方式是信号。这个时候，io等待的两步都是非阻塞的，目前开源的异步io库有libevent、libev、libuv
 
 ###比较select、poll和epoll###
+
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;epoll是Linux所特有，在freeBSD中可以使用kqueue。我们说select低效的原因是因为需要遍历fd，在大量连接下比较慢，线性增长，不如epoll的监听回调，此时epoll还是常数级别响应时间（使用哈希表）。但是监听回调本身就有一定的成本，在连接数少并且连接都十分活跃的情况下，select和poll的性能可能比epoll好。
 
 1. select
