@@ -1,7 +1,7 @@
 ---
 title: unicode到底是个什么鬼
 date: 2019-01-24 16:01:06
-tags:
+tags: python
 ---
 &nbsp;&nbsp;&nbsp;&nbsp;编码问题可以说是python中非常让人头疼的一个问题了，看到知乎上一个哥们说：一旦你走上了编程之路，如果你不把编码问题搞清楚，那么它就像幽灵一般纠缠你整个职业生涯，各种灵异事件会接踵而来。只有充分发挥程序员死磕到底的精神你才有可能彻底摆脱编码问题带来的烦恼。     
 &nbsp;&nbsp;&nbsp;&nbsp;实在不能更同意了。前几天看到一篇文章写的挺不错<a>https://zhuanlan.zhihu.com/p/40834093</a>。网上也有很多类似的文章，一般都会说到python3的str的编码是unicode。同时在另一本知名的书上《effective python》有这样一段：
