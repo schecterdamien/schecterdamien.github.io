@@ -1,8 +1,9 @@
 language: node_js
-node_js: stable
+node_js: 11.14.0
 
 # S: Build Lifecycle
 install:
+  - npm install -g npm@2
   - npm install
 
 
