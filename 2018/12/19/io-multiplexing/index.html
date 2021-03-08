@@ -1,0 +1,71 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="schecterdamien's blog"><meta name="google-site-verification" content="PDYt75pi7qly7nD95sP1WV3G9Hgt62Ke35TItaBtW2A"><meta name="baidu-site-verification" content="N4J27EWNSP"><title>io多路复用 | schecterdamien</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/normalize/8.0.0/normalize.min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">io多路复用</h1><a id="logo" href="/.">schecterdamien</a><p class="description">你从远方来，我到远方去</p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">io多路复用</h1><div class="post-meta">Dec 19, 2018</div><div class="post-content"><p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;虽然之前也看过不少关于io多路复用的文章，但是一直一知半解，直到今天看到两篇文章，豁然开朗。没自信写的比这两篇文章更好，只能挑出重点，提出一点自己的看法，当作笔记而已。<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;首先，打开传送门：<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1. <a><a href="https://www.jianshu.com/p/486b0965c296" target="_blank" rel="noopener">https://www.jianshu.com/p/486b0965c296</a></a><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2. <a><a href="https://www.jianshu.com/p/dfd940e7fca2" target="_blank" rel="noopener">https://www.jianshu.com/p/dfd940e7fca2</a></a></p>
+<h3 id="linux五种io模型："><a href="#linux五种io模型：" class="headerlink" title="linux五种io模型："></a>linux五种io模型：</h3><ol>
+<li>要点：<ol>
+<li>io等待其实分为两个阶段，一个是等待数据，一个是把数据从内核复制到用户空间。</li>
+<li>select、poll、epoll、recvfrom等都是系统调用，从用户态切换到系统态，有高昂的性能损耗</li>
+<li>进程的阻塞是进程自身的一种主动行为，是为了让出cpu，执行其他任务，不断轮询在系统层面看来本身是一种浪费资源、效率很低的行为，这么做的原因也是因为系统底层没有提供相应的功能，使得上层应用只能采取这种办法。</li>
+<li>这里同步异步是指的这两个阶段有没有联系，如果第一个阶段之后，进程还要等待第二个阶段，那么其实就是同步，异步就是这两个阶段完全没有关系，第一个阶段调用之后，进程就可以不用管了。然后等数据准备好了系统通过回调或信号的方式通知进程，这个过程可以发生在第一阶段之后（信号驱动式IO），也可以发生在第二阶段之后（异步非阻塞 IO）</li>
+</ol>
+</li>
+<li>比较常见的类型：<ol>
+<li>同步阻塞io<ol>
+<li>最常见最简单的类型，linux下默认所有的socket都是阻塞的，io调用的时候两个阶段进程都在等待</li>
+<li>这种模式想要并发就需要多线程，但是并发不可能太大，因为linux默认一个线程是8m的内存空间，所以10000的并发就是80G（在长链接下很可能达到），系统早就爆炸了！被人利用进行ddos，开启一个链接什么都不做都能把服务器撑爆</li>
+</ol>
+</li>
+<li>同步非阻塞<ol>
+<li>socket设置为non-blocking模式，这种情况下，socket调用不会阻塞，会直接返回，然后可以不断调用recvfrom来判断是否有数据来，也可以在轮询之间做点别的事，仔细想想这种代码写出来该有多难看。</li>
+<li>但是，这为同时监控多个socket提供了可能，如果我想提高并发又不想开太多线程可以怎么做呢，可以设置几个队列，read_socket队列，write_socket队列等，每次来请求了，都打开一个socket，然后socket不阻塞，直接返回，放入相应的队列里面，再遍历各个队列，看是否有数据过来，过来就取数据，然后执行相关业务。这种做法有什么缺陷呢：<ol>
+<li>业务代码和底层代码强耦合，重构成本高</li>
+<li>这个轮询的事情不该用户进程来做，每次轮询都会使用recvform系统调用，系统调用的代价很高的，而且还是放在千百次的轮询中，大大的消耗资源</li>
+<li>……</li>
+</ol>
+</li>
+<li>这种模式实现上可以使用两个线程，一个线程监听socket请求，并放入相关队列，一个线程执行轮询，处理业务。</li>
+</ol>
+</li>
+<li>io多路复用<ol>
+<li>上面说了，轮询不该用户进程来做，本身是系统层面没提供相关功能之下的一种妥协，于是就有了select、poll、epoll，这几个与用户进程之间的关系差不多，以select为例，</li>
+<li>这种模式socket也需要设置non-blocking，不然还是会阻塞，有请求过来就把socket扔给select，select调用的时候也会阻塞用户进程，但是多个socket，一旦有到达的，select就会通知用户进程，然后用户进程就可以处理。如果同时来了n个请求，用户进程可以同时把n个请求放进数组让select处理，假设业务处理速度很快，可以瞬间完成，那这n个请求的完成时间则取决于io最慢的那个请求的时间，并发就上来了。</li>
+<li>其实本质上和第二种说的实现差不多，就是要有个角色专门来轮询socket，但是好处是业务代码和底层代码接耦了，然后又不会进行千百次的系统调用，因为遍历在内核中完成了。这种模式的io调用第一步的时间被压缩了，但是第二步，从内核拷贝数据到用户态还是会阻塞</li>
+<li>这种情况，需要进行两部系统调用，一个是select，一个是recvform，所以并发不高的情况，select不一定比同步阻塞加多进程性能好，优势在这种情况下能处理更多的连接</li>
+</ol>
+</li>
+<li>信号驱动式IO<ol>
+<li>这种模式需要socket支持，socket调用的时候安装一个信号处理函数，然后进程就继续运行，数据准备好时，进程会收到一个SIGIO信号，可以在信号处理函数中调用recvform处理数据，这个时候recvform还是阻塞的。因为进程在调用之后不用管后面的数据处理部分，这部分交给信号处理函数来做，所以是异步的。</li>
+</ol>
+</li>
+<li>异步非阻塞 IO<ol>
+<li>进程进行aio_read系统调用之后，会直接返回。然后等数据准备好之后，内核又把数据复制到进场，然后通知进程，在linux中通知的方式是信号。这个时候，io等待的两步都是非阻塞的，目前开源的异步io库有libevent、libev、libuv.  </li>
+</ol>
+</li>
+</ol>
+</li>
+</ol>
+<h3 id="比较select、poll和epoll"><a href="#比较select、poll和epoll" class="headerlink" title="比较select、poll和epoll"></a>比较select、poll和epoll</h3><p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;epoll是Linux所特有，在freeBSD中可以使用kqueue。我们说select低效的原因是因为需要遍历fd，在大量连接下比较慢，线性增长，不如epoll的监听回调，此时epoll还是常数级别响应时间（使用哈希表）。但是监听回调本身就有一定的成本，在连接数少并且连接都十分活跃的情况下，select和poll的性能可能比epoll好。</p>
+<ol>
+<li>select<ol>
+<li>select是POSIX所规定，一般操作系统均有实现，</li>
+<li>优点：良好的跨平台性</li>
+<li>缺点：select最大的缺陷就是单个进程所打开的FD是有一定限制的，它由FD_SETSIZE设置，默认值是1024，可以更改，但是会降低效率。同时select是遍历socket。需要维护一个用来存放大量fd的数据结构，这样会使得用户空间和内核空间在传递该结构时复制开销大</li>
+</ol>
+</li>
+<li>poll<ol>
+<li>poll本质上和select没有区别，也是遍历fd。使用“水平触发”，就是如果报告了fd，进程没有处理，下次poll时还会再次报告这个fd</li>
+<li>优点：没有最大连接数的限制，原因是它是基于链表来存储的</li>
+<li>缺点：大量的fd在用户态和内核态传递，</li>
+</ol>
+</li>
+<li>epoll<ol>
+<li>是select和poll的增强版本，epoll使用一个文件描述符管理多个描述符，将用户关系的文件描述符的事件存放到内核的一个事件表中，这样在用户空间和内核空间的copy只需一次，还有一个特点是，epoll使用“事件”的就绪通知方式，通过epoll_ctl注册fd，一旦该fd就绪，内核就会采用类似callback的回调机制来激活该fd，epoll_wait便可以收到通知。</li>
+<li>支持水平触发和边缘触发，水平触发是默认模式。边缘触发就是它只告诉进程哪些fd刚刚变为就绪态，并且只会通知一次。边缘触发是高速工作方式，只支持no-block socket</li>
+<li>优点：<ol>
+<li>没有最大并发连接的限制</li>
+<li>去掉了遍历文件描述符，而是通过监听回调的的机制，所以效率不会随着fd的数目增长而下降，只有活跃的fd才会调用callback</li>
+<li>利用mmap()文件映射内存加速与内核空间的消息传递</li>
+</ol>
+</li>
+</ol>
+</li>
+</ol>
+</div><div class="tags"><a href="/tags/linux/">linux</a></div><div class="post-nav"><a class="pre" href="/2018/12/19/namedtuple/">namedtuple第一个参数有什么用？</a><a class="next" href="/2018/11/19/about-absurd/">关于语言的杂想</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="https://schecterdamien.github.io"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/python/" style="font-size: 15px;">python</a> <a href="/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/tags/algorithm/" style="font-size: 15px;">algorithm</a> <a href="/tags/杂谈/" style="font-size: 15px;">杂谈</a> <a href="/tags/linux/" style="font-size: 15px;">linux</a> <a href="/tags/devops/" style="font-size: 15px;">devops</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2021/03/04/mysql-lock/">mysql锁总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/04/25/pg-mvcc/">PostgreSQL的事务隔离和MVCC</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/04/24/concurrency-problem/">记一次并发问题的排查</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/04/17/cuckoo-filter/">Cuckoo Filter</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/02/24/python-debug/">怎么高效的调试python程序(1)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/01/24/unicode/">unicode到底是个什么鬼</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/12/19/namedtuple/">namedtuple第一个参数有什么用？</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/12/19/io-multiplexing/">io多路复用</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/11/19/about-absurd/">关于语言的杂想</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/10/10/interval-tree/">判断多个区间是否有重叠</a></li></ul></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/." rel="nofollow">schecterdamien.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//cdn.bootcss.com/fancybox/3.3.5/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/fancybox/3.3.5/jquery.fancybox.min.css"><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script></div></body></html>

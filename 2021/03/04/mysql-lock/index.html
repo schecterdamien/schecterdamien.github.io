@@ -1,0 +1,312 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="schecterdamien's blog"><meta name="google-site-verification" content="PDYt75pi7qly7nD95sP1WV3G9Hgt62Ke35TItaBtW2A"><meta name="baidu-site-verification" content="N4J27EWNSP"><title>mysql锁总结 | schecterdamien</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/normalize/8.0.0/normalize.min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">mysql锁总结</h1><a id="logo" href="/.">schecterdamien</a><p class="description">你从远方来，我到远方去</p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">mysql锁总结</h1><div class="post-meta">Mar 4, 2021</div><div class="post-content"><p>&nbsp;&nbsp;&nbsp;&nbsp; 最近做了一次和<code>MySQL（innoDB）</code>锁有关的技术分享，记录一下<br>&nbsp;&nbsp;&nbsp;&nbsp; 为了能尽量准确简洁的描述innoDB的锁机制，看了好多的文章，由于innoDB中的锁系统确实非常复杂，细节特别多，如有纰漏和谬误，还请联系改正</p>
+<h3 id="innoDB锁简介"><a href="#innoDB锁简介" class="headerlink" title="innoDB锁简介"></a>innoDB锁简介</h3><p>&nbsp;&nbsp;&nbsp;&nbsp; innoDb支持多种粒度的锁，按照粒度来分，可分为<code>表锁（LOCK_TABLE）</code>和<code>行锁（LOCK_REC）</code><br>&nbsp;&nbsp;&nbsp;&nbsp; 一般的锁系统都会有<code>共享锁</code>和<code>排他锁</code>的分类，<code>共享锁</code>也叫<code>读锁</code>，<code>排他锁</code>也叫<code>写锁</code>。加在同一个资源上，写锁会阻塞另外一把写锁或读锁的获取，读锁则允许另外一把读锁的获取，也就是读读之间允许并发，读写或者写写会阻塞，innodb中表锁和行锁都支持<code>共享锁（简写S）</code>和<code>排他锁（简写X）</code>。<br>&nbsp;&nbsp;&nbsp;&nbsp; 因为innoDB支持多粒度的锁，允许表锁和行锁的并存，为了方便多粒度锁冲突的判断，innoDB中还存在一种名叫<code>意向锁（Intention Locks）</code>的锁。<br>&nbsp;&nbsp;&nbsp;&nbsp; 除此之外，还有一种特殊的表锁，自增锁，主要用来并发安全的生成自增id，一种特殊的意向锁，插入意向锁，用来防止幻读问题</p>
+<h3 id="表锁"><a href="#表锁" class="headerlink" title="表锁"></a>表锁</h3><p>&nbsp;&nbsp;&nbsp;&nbsp; 表锁，锁定的粒度是整个表，也分共享锁和排他锁。不同于行锁，表锁MySQL Server层就有实现（所以MyISAM支持表锁，也只支持表锁），innoDb则在存储引擎层面也实现了一遍表锁（后面会介绍具体结构）。<br>&nbsp;&nbsp;&nbsp;&nbsp; 哪些时候会触发表锁呢？在执行某些ddl时，比如<code>alter table</code>等操作，会对整个表加锁，也可以手动执行锁表语句：<code>LOCK TALBES table_name [READ | WRITE]</code>，READ为共享锁，WRITE为排他锁，手动解锁的语句为：<code>UNLOCK TABLES</code>，会直接释放当前会话持有的所有表锁 </p>
+<p>有一些需要注意的地方：</p>
+<ul>
+<li>因为MySQL Server层和InnoDB都实现了表锁，仅当<code>autocommit=0</code>、<code>innodb_table_lock=1</code>（默认设置）时，InnoDB层才能知道MySQL加的表锁，ＭySQL Server才能感知InnoDB加的行锁，这种情况下，InnoDB才能自动识别涉及表级锁的死锁，否则，InnoDB将无法自动检测并处理这种死锁</li>
+<li>在用<code>LOCK TALBES</code>显式获取锁后，只能访问加锁的这些表，并且如果加的是共享锁，那么只能执行查询操作，而不能执行更新操作，如果获得的是排他锁，则可以进行更新操作。</li>
+<li>开始事务时会自动UNLOCK之前的表锁，COMMIT或ROLLBACK都不能释放用<code>LOCK TABLES</code>加的表级锁。<code>LOCK TALBES</code>时会先隐式提交事务，再锁表，<code>UNLOCK TALBES</code>也会隐式提交事务。所以，事务中需要的表锁必须在事务开头一次性获取，无法再事务中间获取，因为不管是<code>LOCK TALBES</code>还是<code>UNLOCK TALBES</code>都会提交事务</li>
+</ul>
+<p>官网上建议的表锁的使用方法：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SET</span> autocommit=<span class="number">0</span>;</span><br><span class="line"><span class="keyword">LOCK</span> <span class="keyword">TABLES</span> t1 WRITE, t2 <span class="keyword">READ</span>, ...;</span><br><span class="line">... <span class="keyword">do</span> something <span class="keyword">with</span> <span class="keyword">tables</span> t1 <span class="keyword">and</span> t2 here ...</span><br><span class="line"><span class="keyword">COMMIT</span>;</span><br><span class="line"><span class="keyword">UNLOCK</span> <span class="keyword">TABLES</span>;</span><br></pre></td></tr></table></figure>
+<p>实际业务中，没有特殊理由，不建议使用表锁，因为锁的粒度太大了，极大的影响并发</p>
+<h3 id="意向锁"><a href="#意向锁" class="headerlink" title="意向锁"></a>意向锁</h3><p>&nbsp;&nbsp;&nbsp;&nbsp;意向锁是一种特殊的表级锁，意向锁是为了让InnoDB多粒度的锁能共存而设计的。取得行的共享锁和排他锁之前需要先取得表的意向共享锁（IS）和意向排他锁（IX），意向共享锁和意向排他锁都是系统自动添加和自动释放的，整个过程无需人工干预。<br>&nbsp;&nbsp;&nbsp;&nbsp;主要是用来辅助表级和行级锁的冲突判断，因为Innodb支持行级锁，如果没有意向锁，则判断表锁和行锁冲突的时候需要遍历表上所有行锁，有了意向锁，则只要判断表是否存在意向锁就可以知道是否有行锁了。表级别锁的兼容性如下表：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+<th>X</th>
+<th>IX</th>
+<th>S</th>
+<th>IS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td>X</td>
+<td>Conflict</td>
+<td>Conflict</td>
+<td>Conflict</td>
+<td>Conflict</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>IX</td>
+<td>Conflict</td>
+<td>Compatible</td>
+<td>Conflict</td>
+<td>Compatible</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>S</td>
+<td>Conflict</td>
+<td>Conflict</td>
+<td>Compatible</td>
+<td>Compatible</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>IS</td>
+<td>Conflict</td>
+<td>Compatible</td>
+<td>Compatible</td>
+<td>Compatible</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>可以看到，意向锁与意向锁兼容，IX、IS自身以及相互都兼容，不互斥，因为意向锁仅表示下一层级加什么类型的锁，不代表当前层加什么类型的锁；IX和表级X、S互斥；IS和表级X锁互斥。其兼容性正好体现了其作用</p>
+<h3 id="自增锁"><a href="#自增锁" class="headerlink" title="自增锁"></a>自增锁</h3><p>&nbsp;&nbsp;&nbsp;&nbsp;自增锁是一种特殊的表级别锁，如果一个表的某个行具有<code>AUTO_INCREMENT</code>的列，则一个事务在插入记录到这个表的时候，会先获取自增锁。如果一个事务持有自增锁，会阻塞其他事物对该表的插入操作，保证自增连续。<code>innodb_autoinc_lock_mode</code>变量定义了不同的自增算法，在MySql8.0之前默认值是1，MySql8.0之后默认值是2，具体区别参考<a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-auto-increment-handling.html" target="_blank" rel="noopener">官方文档</a></p>
+<h3 id="行锁"><a href="#行锁" class="headerlink" title="行锁"></a>行锁</h3><p>&nbsp;&nbsp;&nbsp;&nbsp;Innodb中的行锁种类繁多，可以分为：记录锁（record locks）、间隙锁（gap locks）、临键锁（next-key locks），插入意向锁（insert intention locks）。行锁在逻辑上都可以看作作用于索引或者索引间隙之上，索引分为主键索引和非主键索引两种，如果一条sql语句操作了主键索引，MySQL就会锁定这条主键索引；如果一条语句操作了非主键索引，MySQL会先锁定该非主键索引，再锁定相关的主键索引。<br>&nbsp;&nbsp;&nbsp;&nbsp; 很多语句都会加行锁，比如Update、Delete、Insert等操作，或者使用SELECT … FOR SHARE | UPDATE [NOWAIT |SKIP LOCKED]来进行当前读（Locking Reads），其中<code>SHARE</code>表示加共享锁，<code>UPDATE</code>表示加排他锁。当要加的锁与当前行已有锁互斥时，会一直阻塞等待一段时间（<code>innodb_lock_wait_timeout</code>定义了等待时间）。加上<code>NOWAIT</code>参数则不会阻塞，会立即返回，并显示一个错误，加上<code>SKIP LOCKED</code>则会在结果集中跳过这些冲突的记录（慎用）。<br>&nbsp;&nbsp;&nbsp;&nbsp; 在不同的语句，不同的事务隔离级别下，甚至不同的索引类型下，行锁会表现成不同的形式，下面介绍这些形式</p>
+<h5 id="记录锁（record-locks）"><a href="#记录锁（record-locks）" class="headerlink" title="记录锁（record locks）"></a>记录锁（record locks）</h5><p>&nbsp;&nbsp;&nbsp;&nbsp; 在逻辑上，记录锁可以理解为锁定的是某个具体的索引，当SQL执行按照唯一性（Primary key、Unique key）索引进行数据的检索时，查询条件等值匹配且查询的数据是存在，这时 SQL 语句加上的锁即为记录锁</p>
+<img src="/2021/03/04/mysql-lock/record_lock.png"> 
+<h5 id="间隙锁（gap-locks）"><a href="#间隙锁（gap-locks）" class="headerlink" title="间隙锁（gap locks）"></a>间隙锁（gap locks）</h5><p>&nbsp;&nbsp;&nbsp;&nbsp; 在逻辑上，间隙锁可以理解为锁住的是索引之间的间隙，是一个左开右开的区间。当SQL执行按照索引进行数据的检索时，查询条件的数据不存在，这时SQL语句加上的锁即为间隙锁。</p>
+<img src="/2021/03/04/mysql-lock/gap_lock.png"> 
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 如上图，因为这些语句查询的值都不存在，所以锁住的都是间隙。并且在 InnoDb 存储引擎里，每个数据页中都会有两个虚拟的行记录，用来限定记录的边界，分别是：<code>Infimum Record</code> 和 <code>Supremum Record</code>，<code>Infimum</code> 是比该页中任何记录都要小的值，而 <code>Supremum</code> 比该页中最大的记录值还要大，这两条记录在创建页的时候就有了，并且不会删除。所以当查询的值比当前已有记录最大值还大时候，锁住的会是最大值到<code>Supremum</code>之间的间隙。比如第一条语句，查询的时候就算是等值匹配，只要这个不存在的数据落在两个索引节点之间，就算不是一个范围，也会锁住索引节点间的所有数据即gap3，范围（7，11）。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 间隙锁是可以共存的，共享间隙锁与独占间隙锁之间是没有区别的，两者之间并不冲突。其存在的目的都是防止其他事务往间隙中插入新的纪录，故而一个事务所采取的间隙锁是不会去阻止另外一个事务在同一个间隙中加锁的</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 间隙锁是设计用来防止幻读的，当锁定一个gap时，其他事务没有办法再往这个gap中插入数据，PostgreSQL没有这种机制，所以PostgreSQl没有办法锁住不存在的行，无法防止幻读（见之前的文章：<a href="https://schecterdamien.github.io/2019/04/24/concurrency-problem/">记一次并发问题的排查</a>与<a href="https://schecterdamien.github.io/2019/04/24/pg-mvcc/">PostgreSQL的事务隔离和MVCC</a>）</p>
+<h5 id="临键锁（next-key-locks）"><a href="#临键锁（next-key-locks）" class="headerlink" title="临键锁（next-key locks）"></a>临键锁（next-key locks）</h5><p>&nbsp;&nbsp;&nbsp;&nbsp; 在逻辑上，临键锁可以理解为锁住的是索引本身以及索引之前的间隙，是一个左开右闭的区间。当SQL执行按照非唯一索引进行数据的检索时，会给匹配到行上加上临键锁。</p>
+<img src="/2021/03/04/mysql-lock/next_key_lock.png"> 
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 如上图，当执行<code>select * from table_name where id = 3 for update</code>时会锁定（-∞，3）区间，因为按照这个SQL的语义，即是为了锁住<code>id=3</code>的数据，不允许其他操作，如果只是锁住记录本身，肯定是没有办法保证的，因为这是非唯一索引，还有可能插入其他<code>id=3</code>的数据，如果把间隙都给锁住，则其他对这个间隙的插入操作都会被阻塞，从而保证了一致性，这也是临键锁的用意。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 如果加锁时，查询条件没有命中索引（非ICP的查询），则InnoDB会尝试给全表每一条记录都加上临键锁，效果相当于锁表了</p>
+<h5 id="插入意向锁（insert-intention-locks）"><a href="#插入意向锁（insert-intention-locks）" class="headerlink" title="插入意向锁（insert intention locks）"></a>插入意向锁（insert intention locks）</h5><p>&nbsp;&nbsp;&nbsp;&nbsp; 插入意向锁是一种间隙锁形式的意向锁，在真正执行INSERT操作之前设置。当执行插入操作时，总会检查当前插入操作的下一条记录（已存在的主索引节点）上是否存在锁对象，判断是否锁住了gap，如果锁住了，则判定和插入意向锁冲突，当前插入操作就需要等待，也就是配合上面的间隙锁或者临键锁一起防止了幻读操作。<br>&nbsp;&nbsp;&nbsp;&nbsp; 因为插入意向锁是一种意向锁，意向锁只是表示一种意象，所以插入意向锁之间不会互相冲突，多个插入操作同时插入同一个gap时，无需互相等待，比如当前索引上有记录4和8，两个并发session同时插入记录6，7。他们会分别为(4,8)加上GAP锁，但相互之间并不冲突。<br>&nbsp;&nbsp;&nbsp;&nbsp; INSERT语句在执行插入之前，会先在gap中加入插入意向锁，如果是唯一索引，还会进行Duplicate Key判断，如果存在相同Key且该Key被加了互持锁，则还会加共享锁，然后等待（因为这个相同的Key之后有可能会回滚删除，这里非常容易死锁）。等到成功插入后，会在这条记录上加排他记录锁。</p>
+<h5 id="行锁小结"><a href="#行锁小结" class="headerlink" title="行锁小结"></a>行锁小结</h5><img src="/2021/03/04/mysql-lock/row_locks.png"> 
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 行锁在不同的语句中和环境条件下可以表现成：记录锁（record locks）、 间隙锁（gap locks）、临键锁（next-key locks）和插入意向锁（insert intention locks）。记录锁锁住具体的记录，间隙锁锁住记录之间的间隙，临键锁锁住记录和记录前面的间隙，插入意向锁则是特殊的间隙锁，在插入前判断行将要插入的间隙是否会有冲突。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 以上说的各种行锁的加锁情况都是在<code>可重复读（REPEATABLE READ）</code>隔离级别下，这个级别也是innoDB默认的事务隔离级别，是最常用的隔离级别，但是其实不同语句在不同隔离级别下加锁的情况会有非常大的区别，以下会简单说明</p>
+<h3 id="不同语句和隔离级别对加锁的影响"><a href="#不同语句和隔离级别对加锁的影响" class="headerlink" title="不同语句和隔离级别对加锁的影响"></a>不同语句和隔离级别对加锁的影响</h3><p>&nbsp;&nbsp;&nbsp;&nbsp; 这里先排除<code>读未提交（READ UNCOMMITTED）</code>这种隔离级别的情况，这种级别在生产上几乎无法使用，会出现脏读的情况，不一致读，无法保证事务的ACID。然后先看下<code>串行化（SERIALIZABLE）</code>隔离级别</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; <code>串行化</code>隔离级别和<code>可重复读</code>隔离级别最大的区别应该是，innoDB会隐式的转换所有的SELECT语句，给其加共享锁，变成<code>SELECT ... FOR SHARE</code>，这样读操作会阻塞其他写操作，使得读写无法并发，只能串行，从而保证严格的一致性。不过这种行为也受到<code>autocommit</code>变量的影响：</p>
+<ul>
+<li>如果禁用了<code>autocommit</code>，如上所述，则innoDB会隐式的转换所有的SELECT语句，给其加共享锁</li>
+<li>如果开启了<code>autocommit</code>，不会进行隐式转换，因为每条语句构成一个事务，所有快照读语句（也就是没有FOR UPDATE|SHARE的SELECT语句）可以被认为是只读的事务，是可以安全并发，不需要阻塞其他事务</li>
+</ul>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; <code>不可重复读（READ COMMITTED）</code>隔离级别下，和<code>可重复读</code>隔离级别在行锁方面主要的区别是</p>
+<ul>
+<li><code>不可重复读</code>隔离级别下取消了间隙锁，临键锁也退化成了记录锁。间隙锁定和临键锁仅用于外键约束检查和重复键检查，也就是说加锁时，如果没有符号条件的查询并不加锁，有符合条件的查询也只会给记录加上记录锁。因为没有了间隙锁，所以会出现幻读问题。</li>
+<li>在<code>可重复读</code>隔离级别下，加锁时如果查询条件没有命中索引（非ICP的查询），则会给表中每条记录都加上临键锁。而<code>不可重复读</code>隔离级别下因为没有间隙锁，则会退化成给表中每条数据加上记录锁，并且还会把没有匹配的行上的锁给释放掉，而不是把全表所有记录不管有没有匹配都给锁上</li>
+</ul>
+<h3 id="死锁"><a href="#死锁" class="headerlink" title="死锁"></a>死锁</h3><p>&nbsp;&nbsp;&nbsp;&nbsp;因为使用表锁时，需要一次性申请所有所需表的锁，所以在只使用表锁的情况下不会出现死锁，一般出现死锁的情况都是行锁。innoDB有死锁探测机制，在申请锁的时候，都会先进行死锁判断，采用的算法深度优先搜索，并且如果在搜索过程中发现有环，就说明发生了死锁，为了避免死锁检测开销过大，如果搜索深度超过了 200（<code>LOCK_MAX_DEPTH_IN_DEADLOCK_CHECK</code>)也同样认为发生了死锁。出现死锁时，innoDB会选择一个回滚代价比较小的事务进行回滚。以下会举几个比较典型的死锁例子(均在可重复度隔离级别下)，首先会先建一张测试的表：</p>
+<figure class="highlight n1ql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> TABLE <span class="symbol">`student`</span> (</span><br><span class="line">  <span class="symbol">`id`</span> int <span class="keyword">NOT</span> <span class="literal">NULL</span>,</span><br><span class="line">  <span class="symbol">`uuid`</span> varchar(<span class="number">64</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span>,</span><br><span class="line">  <span class="symbol">`name`</span> varchar(<span class="number">64</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span>,</span><br><span class="line">  <span class="symbol">`age`</span> int <span class="keyword">NOT</span> <span class="literal">NULL</span>,</span><br><span class="line">  <span class="keyword">PRIMARY</span> <span class="keyword">KEY</span> (<span class="symbol">`id`</span>),</span><br><span class="line">  <span class="keyword">UNIQUE</span> <span class="keyword">KEY</span> <span class="symbol">`uuid_index`</span> (<span class="symbol">`uuid`</span>),</span><br><span class="line">  <span class="keyword">KEY</span> <span class="symbol">`name_index`</span> (<span class="symbol">`name`</span>)</span><br><span class="line">) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 <span class="keyword">COLLATE</span>=utf8mb4_general_ci</span><br></pre></td></tr></table></figure>
+<h5 id="死锁例一"><a href="#死锁例一" class="headerlink" title="死锁例一"></a>死锁例一</h5><table>
+<thead>
+<tr>
+<th>语句顺序\事务</th>
+<th>事务一</th>
+<th>事务二 </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T1</td>
+<td>begin;</td>
+<td>begin;</td>
+</tr>
+<tr>
+<td>T2</td>
+<td>select * from student where id = 1  for update;</td>
+<td>select * from student where id = 2 for update; </td>
+</tr>
+<tr>
+<td>T3</td>
+<td>select * from student where id = 2  for update;</td>
+<td></td>
+</tr>
+<tr>
+<td>T4（死锁发生）</td>
+<td></td>
+<td>select * from student where id = 1 for update;</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;这是最简单最典型的死锁的情况了，两个事务互相锁定持有资源，并且等待对方的资源，最后形成一个环，死锁出现。最后某个事务回滚，写业务代码的时候，应该对并发条件可能出现这种情况的语句有所警觉。</p>
+<h5 id="死锁例二"><a href="#死锁例二" class="headerlink" title="死锁例二"></a>死锁例二</h5><p>前提：事务开始时，<code>student</code>表里有<code>id=1</code>的记录</p>
+<table>
+<thead>
+<tr>
+<th>语句顺序\事务</th>
+<th>事务一</th>
+<th>事务二 </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T1</td>
+<td>begin;</td>
+<td>begin;</td>
+</tr>
+<tr>
+<td>T2</td>
+<td>select * from student where id = 1  for share;</td>
+<td>select * from student where id = 1 for share; </td>
+</tr>
+<tr>
+<td>T3</td>
+<td>update student set name = ‘Tom’ where id = 1;</td>
+<td></td>
+</tr>
+<tr>
+<td>T4（死锁发生）</td>
+<td></td>
+<td>update student set name = ‘Jack’ where id = 1;</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 两个事务分别对某个记录申请共享锁，因为共享锁性质，两个事务都能获取到。然后又都对这条记录申请排他锁，T3中事务一申请排他锁，等待事务二的共享锁释放，加入锁等待队列，T4中事务二又申请排他锁，于是形成环，死锁条件达成。所以在事务开始时就要想到后面可能会做的操作，提前获取足够强度的锁，而不是中途升级。</p>
+<h5 id="死锁例三"><a href="#死锁例三" class="headerlink" title="死锁例三"></a>死锁例三</h5><p>前提：事务开始时，<code>student</code>表里没有<code>id=100</code>的记录</p>
+<table>
+<thead>
+<tr>
+<th>语句顺序\事务</th>
+<th>事务一</th>
+<th>事务二 </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T1</td>
+<td>begin;</td>
+<td>begin;</td>
+</tr>
+<tr>
+<td>T2</td>
+<td>select * from student where id = 100 for update;</td>
+<td>select * from student where id = 100 for update; </td>
+</tr>
+<tr>
+<td>T3</td>
+<td>insert into student values (100, ‘uuid100’, ‘jack’, 18);</td>
+<td></td>
+</tr>
+<tr>
+<td>T4（死锁发生）</td>
+<td></td>
+<td>insert into student values (100, ‘uuid100’, ‘jack’, 18);</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;如上，在可重复读隔离级别下，如果两个事务同时对某个间隙用<code>SELECT...FOR UPDATE</code>加排他锁，在没有符合该条件记录情况下，两个线程都会加锁成功。程序发现记录尚不存在，就试图插入一条新记录，如果两个线程都这么做，就会出现死锁。因为在记录真正插入之前会加插入意向锁，插入意向锁和间隙锁互斥，所以在T3时，事务一阻塞了，申请插入意向锁排队等待事务二的间隙锁释放，T4时，事务二又申请插入意向锁，需要等待事务一的间隙锁释放，形成环，死锁条件达成。<br>&nbsp;&nbsp;&nbsp;&nbsp;这种情况一般发生在，某些业务需要提前锁住间隙，防止并发插入同一数据（关键属性相同的数据），也就会先<code>SELECT...FOR UPDATE</code>再<code>INSERT</code>，但是这样很容易死锁，可以直接对关键属性建立唯一索引，防止并发插入，也存在无法建立索引的情况<a href="https://schecterdamien.github.io/2019/04/24/concurrency-problem/">记一次并发问题的排查</a>，这时候可以考虑其他办法</p>
+<h5 id="死锁例四"><a href="#死锁例四" class="headerlink" title="死锁例四"></a>死锁例四</h5><p>前提：事务开始时，<code>student</code>表里没有<code>uuid=uuid100</code>的记录</p>
+<table>
+<thead>
+<tr>
+<th>语句顺序\事务</th>
+<th>事务一</th>
+<th>事务二</th>
+<th>事务三</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T1</td>
+<td>begin;</td>
+<td>begin;</td>
+<td>begin; </td>
+</tr>
+<tr>
+<td>T2</td>
+<td>insert into student values (100, ‘uuid100’, ‘jack’, 18);</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>T3</td>
+<td></td>
+<td>insert into student values (101, ‘uuid100’, ‘jack’, 18);</td>
+<td>insert into student values (102, ‘uuid100’, ‘jack’, 18);  </td>
+</tr>
+<tr>
+<td>T4（死锁发生）</td>
+<td>rollback;</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 这也是MySql官方文档给出的一个例子。三个事务同时插入一条某个唯一索引属性（上面的uuid）相同的数据，其中某个事务先一步插入，其他两个事务会阻塞等待，然后先一步插入的事务回滚，其他两个事务出现死锁，其中某个事务会被回滚。官方文档还提到了另外一种类似的情况，具体可以参考<a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-locks-set.html" target="_blank" rel="noopener"><br>Locks Set by Different SQL Statements in InnoDB</a><br>&nbsp;&nbsp;&nbsp;&nbsp; 这种死锁的原因是，<code>INSERT</code>的时候，会对唯一索引进行Duplicate Key判断，如果唯一键冲突，则会加共享锁等待，也就是T3时候的事务二和事务三，都会获得共享锁。T4时，事务一回滚，事务二和事务三都会申请升级排他锁，这样就造成类似死锁案例二的情况，形成死锁了</p>
+<h5 id="死锁例五"><a href="#死锁例五" class="headerlink" title="死锁例五"></a>死锁例五</h5><table>
+<thead>
+<tr>
+<th>语句顺序\事务</th>
+<th>事务一</th>
+<th>事务二 </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T1</td>
+<td>begin;</td>
+<td>begin;</td>
+</tr>
+<tr>
+<td>T2(死锁发生)</td>
+<td>update student set age = age + 1 where name = ‘jack’;</td>
+<td>update student set name = ‘bob’ where id &gt; 100;</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 这个例子引用自<a href="http://mysql.taobao.org/monthly/2016/01/01/" target="_blank" rel="noopener">淘宝数据库内核月报-InnoDB 事务锁系统简介</a>，这个地方的死锁我没有试出来，需要在高并发环境才可能出现，理论上可能会出现。虽然只是两个很简单的更新语句，但是事务一的加锁顺序是，先锁二级索引<code>name_index</code>，再锁聚集索引，事务二的加锁顺序是，先锁聚集索引，再锁二级索引<code>name_index</code>，不同的加锁顺序在并发时可能导致死锁</p>
+<h5 id="死锁小结"><a href="#死锁小结" class="headerlink" title="死锁小结"></a>死锁小结</h5><p>&nbsp;&nbsp;&nbsp;&nbsp;使用<code>SHOW ENGINE INNODB STATUS</code>语句可以看到最近一次的死锁信息，在调试的时候很有帮助。<br>&nbsp;&nbsp;&nbsp;&nbsp;出现死锁后某个事务会回滚，其他事务成功，上层业务会捕获到死锁错误，再重试一般会成功，如果出现大量锁重试，则说明哪里出了问题，写代码的时候可以注意以下几点可以减少死锁出现的概率：</p>
+<ul>
+<li>类似的业务逻辑尽量以固定的顺序访问表和行</li>
+<li>如果业务允许，大事务拆小，大事务持有锁的时间更长，更容易出现死锁</li>
+<li>为表添加合理的索引，可以看到可重复读级别下，如果不走索引（非ICP的查询）将会为表的每一行记录加锁</li>
+<li>尽量少用for share或者for update语句，虽然看起来只是在一行记录上加锁，但是由于间隙锁和临键锁的存在，锁住的可能不止是一行记录</li>
+<li>提前申请足够强度的锁，不要先用for share锁住行，后面再update，很容易死锁</li>
+</ul>
+<h3 id="锁的内部表示"><a href="#锁的内部表示" class="headerlink" title="锁的内部表示"></a>锁的内部表示</h3><p>在<code>innoDb</code>内部中，用<code>unsigned long</code>类型表示锁的类型，其中不同的位代表锁不同的信息，最低的4位表示lock_mode，中间的4位表示lock_type，其余高位表示record_lock_type，内部使用位操作来设置和判断是否设置了对应的值 ：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>record_lock_type</th>
+<th>lock_type</th>
+<th>lock_mode</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><code>lock_mode</code>：描述了锁的基本类型，分为以下几种</p>
+<ul>
+<li>LOCK_IS: 意向共享锁</li>
+<li>LOCK_IX: 意向排他锁</li>
+<li>LOCK_S: 共享锁</li>
+<li>LOCK_X: 排他锁</li>
+<li>LOCK_AUTO_INC: 自增锁</li>
+</ul>
+<p>在源码中有一个lock_mode的枚举类型，除了以上还有几个值：LOCK_NONE，用来表示一致性读，LOCK_NUM用来表示lock_mode的数量，LOCK_NONE_UNSET用来复位低8位  </p>
+<p><code>lock_type</code>：占用中间的4位，目前只用到了5位和6位，分别表示表锁（LOCK_TABLE）和 行锁（LOCK_REC）</p>
+<p><code>record_lock_type</code>：对于表锁类型来说都是空的，对于行锁目前值有：</p>
+<ul>
+<li>LOCK_WAIT：表示正在等待锁</li>
+<li>LOCK_ORDINARY：表示临键锁</li>
+<li>LOCK_GAP：表示间隙锁</li>
+<li>LOCK_REC_NOT_GAP：表示记录锁</li>
+<li>LOCK_INSERT_INTENTION：表示插入意向锁</li>
+<li>LOCK_CONV_BY_OTHER：表示锁是由其它事务创建的(比如隐式锁转换)</li>
+</ul>
+<p>以上说的是锁的类型的表示，行锁、表锁类型相关信息都统一到一个字段了。同类型字段一样，行锁、表锁本身在<code>innoDb</code>中也统一用一个结构体来表示<code>lock_t</code>，大体如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">lock_t</span> &#123;</span></span><br><span class="line">    <span class="keyword">trx_t</span>* trx; <span class="comment">// 锁所属的事务</span></span><br><span class="line">    UT_LIST_NODE_T(<span class="keyword">lock_t</span>) trx_locks; <span class="comment">// 事务所持锁的列表</span></span><br><span class="line">    ulint type_mode; <span class="comment">// 锁类型</span></span><br><span class="line">    <span class="keyword">hash_node_t</span> hash; <span class="comment">// 全局锁哈希表对应的节点</span></span><br><span class="line">    <span class="keyword">dict_index_t</span>* index; <span class="comment">// 行锁的行记录索引</span></span><br><span class="line">    <span class="keyword">union</span> &#123;</span><br><span class="line">        <span class="keyword">lock_table_t</span>;  <span class="comment">// 表锁 </span></span><br><span class="line">        <span class="keyword">lock_rec_t</span>  rec_lock; <span class="comment">// 行锁</span></span><br><span class="line">    &#125; un_member; <span class="comment">// 锁详情</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>行锁和表锁都用一个<code>lock_t</code>结构来表示，差异部分在一个union结构中表示，里面的type_mode即是上面介绍的锁类型，行锁的结构如下：</p>
+<figure class="highlight thrift"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">lock_rec_t</span> </span>&#123;</span><br><span class="line">    ulint space; <span class="comment">// 锁的space id</span></span><br><span class="line">    ulint page_no; <span class="comment">// 锁的page number</span></span><br><span class="line">    ulint n_bits; <span class="comment">// 锁住位置的bitmap</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>通过（<code>space</code>,<code>page_no</code>）可以确定锁所在的页，<code>innoDb</code>内部还会有个字段<code>heap_no</code>来表示记录在页上的偏移，也就是说三元组（<code>space</code>,<code>page_no</code>,<code>heap_no</code>）可以唯一的确定一行的位置。在分配<code>lock_rec_t</code>结构的时候，还会为其在最后分配一个大小为n_bits的bitmap，而记录偏移的bit即为<code>heap_no</code>，用来快速判断这页哪些记录加了锁。</p>
+<p><code>innoDb</code>所有的行锁会插入到一个全局hash表（<code>lock_sys</code>-&gt;<code>rec_hash</code>）中，相同(<code>space</code>,<code>page_no</code>)也就是同一页的锁会被Hash到同一个bucket里，通过<code>lock_t</code>-&gt;<code>hash</code>串成链表。</p>
+<p>总结一下，就是同一事务，同一类型的行锁在同一页上会复用同一个锁结构<code>lock_t</code>，用后面的bitmap来具体表示锁哪些行，大大节约了空间。同一页上不同的事物或类型的锁通过链表串起来放在<code>rec_hash</code>的同一个bucket里，利用hash的结构先定位到页，然后遍历同一页上不同的<code>lock_t</code>，就可以得到哪些事物的哪些锁锁住了哪些行，这种设计平衡了时间和空间的效率。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>&nbsp;&nbsp;&nbsp;&nbsp; innoDB锁系统配合MVCC机制一起实现了事务的<code>一致性</code>和<code>隔离性</code>，innoDB中的锁总类繁多，并且和事务隔离级别关系密切，不同语句在不同隔离级别下的加锁情况大有不同，细节尤其多，而了解这些对排查死锁会有很大的帮助。行锁在innoDB中的实现也颇为巧妙，值得学习</p>
+<h3 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a>参考链接</h3><ul>
+<li><a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-locking.html" target="_blank" rel="noopener">https://dev.mysql.com/doc/refman/8.0/en/innodb-locking.html</a></li>
+<li><a href="http://mysql.taobao.org/monthly/2017/12/02/" target="_blank" rel="noopener">http://mysql.taobao.org/monthly/2017/12/02/</a></li>
+<li><a href="http://mysql.taobao.org/monthly/2016/01/01/" target="_blank" rel="noopener">http://mysql.taobao.org/monthly/2016/01/01/</a></li>
+<li><a href="http://mysql.taobao.org/monthly/2018/05/04/" target="_blank" rel="noopener">http://mysql.taobao.org/monthly/2018/05/04/</a></li>
+<li><a href="https://www.aneasystone.com/archives/2017/12/solving-dead-locks-three.html" target="_blank" rel="noopener">https://www.aneasystone.com/archives/2017/12/solving-dead-locks-three.html</a></li>
+<li><a href="https://www.cnblogs.com/jojop/p/13982679.html" target="_blank" rel="noopener">https://www.cnblogs.com/jojop/p/13982679.html</a></li>
+</ul>
+</div><div class="tags"><a href="/tags/数据库/">数据库</a></div><div class="post-nav"><a class="next" href="/2019/04/25/pg-mvcc/">PostgreSQL的事务隔离和MVCC</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="https://schecterdamien.github.io"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/python/" style="font-size: 15px;">python</a> <a href="/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/tags/algorithm/" style="font-size: 15px;">algorithm</a> <a href="/tags/杂谈/" style="font-size: 15px;">杂谈</a> <a href="/tags/linux/" style="font-size: 15px;">linux</a> <a href="/tags/devops/" style="font-size: 15px;">devops</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2021/03/04/mysql-lock/">mysql锁总结</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/04/25/pg-mvcc/">PostgreSQL的事务隔离和MVCC</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/04/24/concurrency-problem/">记一次并发问题的排查</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/04/17/cuckoo-filter/">Cuckoo Filter</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/02/24/python-debug/">怎么高效的调试python程序(1)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/01/24/unicode/">unicode到底是个什么鬼</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/12/19/namedtuple/">namedtuple第一个参数有什么用？</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/12/19/io-multiplexing/">io多路复用</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/11/19/about-absurd/">关于语言的杂想</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/10/10/interval-tree/">判断多个区间是否有重叠</a></li></ul></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/." rel="nofollow">schecterdamien.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//cdn.bootcss.com/fancybox/3.3.5/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/fancybox/3.3.5/jquery.fancybox.min.css"><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script></div></body></html>
