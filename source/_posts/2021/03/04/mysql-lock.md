@@ -107,7 +107,7 @@ UNLOCK TABLES;
 ##### 行锁小结 #####
 
 
-{% asset_img row_locks.png %} 
+2
 
 &nbsp;&nbsp;&nbsp;&nbsp; 行锁在不同的语句中和环境条件下可以表现成：记录锁（record locks）、 间隙锁（gap locks）、临键锁（next-key locks）和插入意向锁（insert intention locks）。记录锁锁住具体的记录，间隙锁锁住记录之间的间隙，临键锁锁住记录和记录前面的间隙，插入意向锁则是特殊的间隙锁，在插入前判断行将要插入的间隙是否会有冲突。
 
