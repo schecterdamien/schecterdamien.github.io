@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ch">
+  <head>
+    <meta charset="utf-8" />
+<title>web</title>
+<meta name="description" 
+      content=""
+>
+
+  
+
+
+
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link
+  rel="alternate"
+  type="application/rss+xml"
+  href="https://schecterdamien.github.io/index.xml"
+  title=""
+/>
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="web"/>
+<meta name="twitter:description" content=""/>
+
+
+
+<link rel="stylesheet" href="https://schecterdamien.github.io/fontawesome/css/all.min.css" />
+
+
+
+
+<link
+  crossorigin="anonymous"
+  href="/css/styles.min.css"
+  integrity=""
+  rel="preload stylesheet"
+  as="style"
+/>
+
+
+
+
+<link
+  id="dark-mode-theme"
+  crossorigin="anonymous"
+  href="/css/dark.min.css"
+  integrity=""
+  rel="preload stylesheet"
+  as="style"
+/>
+
+
+<script>
+  var darkTheme = document.getElementById('dark-mode-theme')
+  var storedTheme = localStorage.getItem('dark-mode-storage')
+
+  if (storedTheme === 'dark') {
+    darkTheme.disabled = false
+  } else if (storedTheme === 'light') {
+    darkTheme.disabled = true
+  }
+</script>
+
+
+<script defer crossorigin="anonymous" src="/js/theme.js" integrity=""></script>
+
+
+<script defer crossorigin="anonymous" src="/js/instantpage.min.js" integrity=""></script><meta name="generator" content="Hugo 0.101.0" />
+  </head>
+  <body>
+    
+  
+
+
+
+
+  <header>
+    <nav class="navbar">
+  <div class="nav">
+    
+      <a href="https://schecterdamien.github.io/" class="nav-logo">
+        <img
+          src="https://schecterdamien.github.io/images/icon.png"
+          width="50"
+          height="50"
+          alt="Logo"
+        />
+      </a>
+    
+
+    <ul class="nav-links">
+      
+        
+          <li>
+            <a href="/about/" id="About"
+              ><em class="fas fa-user fa-lg"></em
+            ></a>
+          </li>
+          
+      
+        
+          <li>
+            <a href="/tags" id="Tags"
+              ><em class="fas fa-tag fa-lg"></em
+            ></a>
+          </li>
+          
+      
+        
+          <li>
+            <a href="/search" id="Search"
+              ><em class="fas fa-search fa-lg"></em
+            ></a>
+          </li>
+          
+      
+        
+          <li>
+            <a href="/archives" id="Archives"
+              ><em class="fas fa-archive fa-lg"></em
+            ></a>
+          </li>
+          
+      
+    </ul>
+  </div>
+</nav>
+
+    <div class="intro-header">
+      <div class="container">
+        <div class="tags-heading">
+          
+            <h1>
+              web
+            </h1>
+          
+          
+        </div>
+      </div>
+    </div>
+  </header>
+  
+
+    
+  <div class="container" role="main">
+    <div class="posts-list">
+      
+        
+      
+
+      
+        <article class="post-preview">
+  <a href="https://schecterdamien.github.io/posts/2019/http2-wireshark/">
+    <h2 class="post-title">HTTP/2 抓包遇到的坑</h2>
+  </a>
+  <div class="post-entry">
+    
+      <p>上一篇文章介绍了http2协议相关的细节。因为是为了准备分享，所以为了尽可能直观的展示协议通信（特别是握手协商）的整个过程，还是决定准备一下小的demo然后抓包演示下。在这个过程也遇到了一些问题，耽搁了不少时间，所以记录一下整个过程
+h2c抓包 分别对HTTP2的两种建立链接的方式进行抓包（h2c和h2），先演示h2c的连接建立过程，准备的server端的代码如下：
+package main import ( &#34;fmt&#34; &#34;log&#34; &#34;net/http&#34; &#34;golang.org/x/net/http2&#34; &#34;golang.org/x/net/http2/h2c&#34; ) // http2 h2c func main() { h2s := &amp;http2.Server{} handler := http.NewServeMux() handler.HandleFunc(&#34;/ping&#34;, func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, &#34;pong&#34;) }) s := &amp;http.Server{ Addr: &#34;:5005&#34;, Handler: h2c.NewHandler(handler, h2s), } http2.ConfigureServer(s, &amp;http2.Server{}) log.Fatal(s.ListenAndServe()) } 然后打开wireshark，监听本地的5005端口，使用curl请求server，这里需要指定&ndash;http2使用http2协议，不然的话curl默认使用http1.1：
+curl --http2 http://localhost:5005/ping 可以在wireshark里看到建立连接的过程：
+上图是客户端(curl)发送的http1.1的协议升级请求。这里能看到上篇文章提到的协议升级的关键的header。Connection指定header有哪些逐跳头部，Upgrade指定客户端希望升级到http2协议，HTTP2-Settings则指定了连接的初始参数。
+上图是服务端的http response。返回了Upgrade表示服务端同意升级到http2协议，然后客户端和服务端就可以使用http2通信了。
+h2c抓包遇到的问题 虽然在上文已经提到了结论：
+go在1.6开始支持HTTP/2，这个时候只支持HTTP/2 over TLS，也就是h2。只要是TLS部署，则http库就会默认进行HTTPS/2协商，协商失败则蜕化为HTTPS/1 go在1.8开始支持 HTTP/2 server push go在1.11开始支持 HTTP/2 h2c gin目前只支持h2方式的HTTP/2，不支持h2c方式的HTTP/2 但是在一开始对于go里是怎么支持http2是不太清楚的，是在第三方库里支持还是net/http直接支持？是h2c和h2两种方式都支持还是只支持h2？google的时候很多文章又语焉不详，所以在准备一段h2c server代码的时候比较曲折。</p>
+      <a href="https://schecterdamien.github.io/posts/2019/http2-wireshark/" class="post-read-more"
+        ></a
+      >
+    
+  </div>
+
+  <div class="postmeta">
+    <span class="meta-post">
+  <em class="fa fa-calendar-alt"></em
+  >&nbsp;Dec 23, 2021
+  
+</span>
+
+  </div>
+</article>
+
+      
+        <article class="post-preview">
+  <a href="https://schecterdamien.github.io/posts/2019/http2/">
+    <h2 class="post-title">HTTP/2 协议</h2>
+  </a>
+  <div class="post-entry">
+    
+      <p>用grpc很久了，但是一直都仅限于使用，对于比较深层次的细节还是缺乏了解，想找个时间好好学习下这个黑盒底下的一系列技术，最近刚好要准备一个技术分享，所以就决定分享HTTP/2协议相关的细节，因为grpc的通信就是用的HTTP/2协议，这篇文章算是对准备的HTTP/2分享的一个记录
+http应该大家都不陌生，目前使用最多的应该还是HTTP/1.1版本的http协议，那么HTTP/1.1到底有些什么样的问题，导致需要HTTP/2呢？主要有两点
+头阻塞：HTTP/1.1中只有收到当前请求响应后才能重用当前tcp连接发送下一次请求。虽然HTTP/1.1提出了pipeline，旨在缓解这个问题。但是一方面pipeline在复杂的网络环境下很难实现和普及，其次就算都用上了pipeline，pipeline也只是使得可以在本次响应完成之前可以发送下次请求，但响应依然要严格按照顺序返回，也就是如果前一个响应被阻塞，后边的响应将不会到来，头阻塞问题还是没有完全解决。目前客户端（比如浏览器）一般会同时打开多个tcp连接来绕开头阻塞的问题，chrome默认会打开6个tcp链接，并发请求各种类型数据。但是这就带来了一个矛盾，tcp链接越多，肯定对资源的浪费是越大的，链接越少，头阻塞的问题就会越突出 重复的未压缩头数据的传输：自HTTP/1.1之后，HTTP请求中通常带有大量ASCII编码的头部，这些头部通常大部分不会变化，需要每次请求都携带（尤其像是User Agent、Cookie这些值比较长的头部字段），会给本来就拥挤的网络带来很大的压力 除此之外还有一些问题，比如TCP 的慢启动，起初会限制连接的最大速度，如果数据成功传输，会随着时间的推移提高传输的速度，而大量http的业务请求其实本身都只是短链接的，所以导致tcp的流控算法没有很好的应用。为此，HTTP/2的出现就很有必要了
+HTTP/2 概述 先说下HTTP/2的发展历程:
+2009年，Google提出了一项实验性的协议SPDY（读音同speedy），旨在开发者不修改当前网站实现的前提下，提高页面加载速度。SPDY提出后，Chrome、Firefox、Opera等主流浏览器先后给出了实现，很多大型网站（如Google、Twitter、Facebook等）分别提供了其对SPDY会话的实现 2012年，HTTP-WG提出了在SPDY基础上构建HTTP/2的草案 2013年给出了第一个对HTTP/2的实现，自此HTTP/2、SPDY并行发展，在客户端和服务器上进行了广泛可靠的测试 2015年，Google 宣布放弃对SPDY的继续支持，标志着HTTP/2正式登上历史舞台 那么HTTP/2有些什么特点呢：
+HTTP/2 可以让我们的应用更快、更简单、更稳定 通过有效压缩 HTTP 标头字段将协议开销降至最低，同时增加对请求优先级和服务器推送的支持 带来了大量其他协议层面的辅助实现，例如新的流控制、错误处理和升级机制 HTTP/2 没有改动 HTTP 的应用语义，而是修改了数据的格式和传输方式，只需要升级基础设施（代理、web框架等），上层的业务代码都可以不必修改而在新协议下运行 上一个HTTP版本是1.1，为什么这之后不是 HTTP/1.2呢？因为 HTTP/2 引入了一个新的二进制分帧层，该层无法与之前的 HTTP/1.x 服务器和客户端兼容，因此协议的主版本提升到 HTTP/2，且HTTP/2后HTTP协议没有小版本号了，后面直接就是HTTP3
+那HTTP/2是怎么做到加入了这么多功能和优化，但是上层业务不需要改代码呢？一切都是因为引入了一个二进制分帧层，并且HTTP/2的新特性也都是建立在这个基础之上的。这又印证了那句话，“计算机中任何问题都可以通过增加一个中间层来解决“。
+如上图，HTTP/2.0在应用层（HTTP）和传输层（TCP或者TLS）之间增加一个二进制分帧层，HTTP/2.0通信都在一个TCP连接上完成，这个连接可以承载任意数量的双向数据流，相应的每个数据流以消息的形式发送。而消息由一或多个帧组成，这些帧可以乱序发送，然后根据每个帧首部的流标识符重新组装
+这是另一张描述连接（connection）、流（stream）、消息（message）、帧（frame）关系的图，这里解释下这几个概念。
+帧（Frame）： 帧是HTTP/2通信的最小单位 请求和响应都分为首部帧和消息帧单独传输，初此之外还有一些其他的类型的帧，下面会介绍帧结构的时候会说 消息（Message）： 指逻辑上的HTTP消息，比如一次请求、一次响应等。 由一个或多个帧组成，以二进制压缩格式存放 HTTP/1 中的头部。 流（Stream）： 是一条逻辑上的连接，是TCP连接中的一个虚拟通道（每个Tcp连接会建立多个steam） 可以承载双向的消息，每个流都有一个唯一的整数标识符，帧会记录Stream 的id 不同 Stream 的帧是可以乱序发送的（因此可以并发不同的 Stream ），因为每个帧的头部会携带 Stream ID 信息，所以接收端可以通过 Stream ID 有序组装成 HTTP 消息。同一 Stream 内部的帧必须是严格有序的。 客户端和服务器双方都可以建立 Stream， Stream ID 也是有区别的，客户端建立的 Stream 必须是奇数号，而服务器建立的 Stream 必须是偶数号。 同一个连接中的 Stream ID 是不能复用的，只能顺序递增，所以当 Stream ID 耗尽时，需要发一个控制帧 GOAWAY，用来关闭 TCP 连接 连接（Connection）： 即TCP连接 这种在一个TCP连接中划分多个逻辑链接，把所有两端的流量都集中在一个TCP连接的做法，减少了服务端的压力，虽然流量还是这么多流量，但是创建的socket会明显减少，内存占用更少，每个连接吞吐量更大。并且HTTP 性能优化的关键并不在于高带宽，而是低延迟，这种做法避免了TCP的慢启动，能更有效的利用到TCP的流控算法。</p>
+      <a href="https://schecterdamien.github.io/posts/2019/http2/" class="post-read-more"
+        ></a
+      >
+    
+  </div>
+
+  <div class="postmeta">
+    <span class="meta-post">
+  <em class="fa fa-calendar-alt"></em
+  >&nbsp;Jul 25, 2021
+  
+</span>
+
+  </div>
+</article>
+
+      
+    </div>
+    
+  </div>
+
+    <footer>
+  
+
+<div class="social-icons">
+  
+    
+    
+      
+      <a href="link%20to%20social%20media" name="name of social media">
+        <em class="A icon from https://fontawesome.com/"></em>
+      </a>
+    
+  
+
+  
+</div>
+
+
+  
+  <div class="container">
+    <p class="credits copyright">
+      <a href="https://schecterdamien.github.io/about">wujinjing</a>
+      &nbsp;&copy;
+      2021
+      
+      &nbsp;&ndash;&nbsp;
+      <em class="fas fa-moon" id="dark-mode-toggle"></em>
+    </p>
+
+    <p class="credits theme-by">
+       <a href="https://gohugo.io">Hugo</a>&nbsp;
+      
+      <a href="https://github.com/matsuyoshi30/harbor">Harbor</a>
+    </p>
+  </div>
+</footer>
+
+  </body>
+</html>

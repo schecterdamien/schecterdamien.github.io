@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ch">
+  <head>
+    <meta charset="utf-8" />
+<title>python</title>
+<meta name="description" 
+      content=""
+>
+
+  
+
+
+
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link
+  rel="alternate"
+  type="application/rss+xml"
+  href="https://schecterdamien.github.io/index.xml"
+  title=""
+/>
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="python"/>
+<meta name="twitter:description" content=""/>
+
+
+
+<link rel="stylesheet" href="https://schecterdamien.github.io/fontawesome/css/all.min.css" />
+
+
+
+
+<link
+  crossorigin="anonymous"
+  href="/css/styles.min.css"
+  integrity=""
+  rel="preload stylesheet"
+  as="style"
+/>
+
+
+
+
+<link
+  id="dark-mode-theme"
+  crossorigin="anonymous"
+  href="/css/dark.min.css"
+  integrity=""
+  rel="preload stylesheet"
+  as="style"
+/>
+
+
+<script>
+  var darkTheme = document.getElementById('dark-mode-theme')
+  var storedTheme = localStorage.getItem('dark-mode-storage')
+
+  if (storedTheme === 'dark') {
+    darkTheme.disabled = false
+  } else if (storedTheme === 'light') {
+    darkTheme.disabled = true
+  }
+</script>
+
+
+<script defer crossorigin="anonymous" src="/js/theme.js" integrity=""></script>
+
+
+<script defer crossorigin="anonymous" src="/js/instantpage.min.js" integrity=""></script><meta name="generator" content="Hugo 0.101.0" />
+  </head>
+  <body>
+    
+  
+
+
+
+
+  <header>
+    <nav class="navbar">
+  <div class="nav">
+    
+      <a href="https://schecterdamien.github.io/" class="nav-logo">
+        <img
+          src="https://schecterdamien.github.io/images/icon.png"
+          width="50"
+          height="50"
+          alt="Logo"
+        />
+      </a>
+    
+
+    <ul class="nav-links">
+      
+        
+          <li>
+            <a href="/about/" id="About"
+              ><em class="fas fa-user fa-lg"></em
+            ></a>
+          </li>
+          
+      
+        
+          <li>
+            <a href="/tags" id="Tags"
+              ><em class="fas fa-tag fa-lg"></em
+            ></a>
+          </li>
+          
+      
+        
+          <li>
+            <a href="/search" id="Search"
+              ><em class="fas fa-search fa-lg"></em
+            ></a>
+          </li>
+          
+      
+        
+          <li>
+            <a href="/archives" id="Archives"
+              ><em class="fas fa-archive fa-lg"></em
+            ></a>
+          </li>
+          
+      
+    </ul>
+  </div>
+</nav>
+
+    <div class="intro-header">
+      <div class="container">
+        <div class="tags-heading">
+          
+            <h1>
+              python
+            </h1>
+          
+          
+        </div>
+      </div>
+    </div>
+  </header>
+  
+
+    
+  <div class="container" role="main">
+    <div class="posts-list">
+      
+        
+      
+
+      
+        <article class="post-preview">
+  <a href="https://schecterdamien.github.io/posts/2019/concurrency-problem/">
+    <h2 class="post-title">记一次并发问题的排查</h2>
+  </a>
+  <div class="post-entry">
+    
+      <p>起源 事情的起源是这样的，Binding是一张多对多的表，主要有sku_code，settlement_sn，enable这几个字段，但是逻辑上sku_code，settlemen_sn，enable=True的在表中应该是唯一的。因为enable=False可能有多条，所以不能在数据库上加联合唯一的索引，但是代码里面有判断。然后有一天测试发现出现两条记录的sku_code，settlemen_sn相同且enable都为True，然后看代码，创建Binding的代码大致是这样的
+def create_binding(sku_code, settlement_sn)： if not Binding.objects.filter(sku_code=sku_code, settlement_sn=settlement_sn, enable=True).exist(): raise OperationError(&#39;binding_created&#39;) # 一系列有些耗时的校验 do_some_check() return Binding.objects.create(settlement_sn=settlement_sn, sku_code=sku_code, enable=True) 先判断这样的Binding是否存在，存在的话就直接抛异常，不存在的话再进行其他的校验，最后生成对应的Binding。一般情况下没问题，但是如果并发请求的sku_code和settlement_sn都相同，接到请求的几个worker同时从数据库查询发现目标binding不存在，做出可以创建的判断（因为下面存在一些耗时的校验让这种情况的概率变得很高），然后就创建了sku_code和settlement_sn都相同的记录。 因为是公司内部使用的财务规则系统，也就几个人在用，所以做的时候没怎么考虑并发问题。最后发现其实是前端没有做按钮的防重点，用户连续在按钮上点了两下，造成了这个问题。 我们用的是pg（等下会说为什么强调是pg），这里其实是发生了幻读。那改事务隔离级别可以解决吗，可重复读和串行化不是能解决幻读吗。。。。。肯定不行，一言不合就改数据库事务隔离级别肯定是不行的，而且改了也没法解决这种幻读问题(后来才知道其实串行化可以，但需要加上失败重试的逻辑)。那加锁吧！当时也没多想，迷迷糊糊的在判断上加个锁：
+def create_binding(sku_code, settlement_sn)： if not Binding.objects.filter(sku_code=sku_code, settlement_sn=settlement_sn, enable=True).select_for_update).exist(): raise OperationError(&#39;binding_created&#39;) ..... 查询上加上select_for_update()，阻塞住并发的读，完美！发到测试环境，一看，并不行&hellip;还是会生成重，再回头看才明白这个锁有问题。首先，django的select_for_update加上exist()其实是不会生成&rsquo;select &hellip; for update&rsquo;语句的，然后就算生成了，但是因为没有这样的数据，所以没有row可以被锁，这个锁其实没有任何作用。
+解决 那怎么解决呢，分布式锁肯定是可以的，给判断的代码块加上锁，这样创建binding的请求就变成串行的了，如果对并发没要求，比如我们这种场景为了防止重点，可以使用这种办法。代码块就变成这样了：
+def create_binding(sku_code, settlement_sn)： # 获取分布式锁 get_lock() if not Binding.objects.filter(sku_code=sku_code, settlement_sn=settlement_sn, enable=True).exist(): raise OperationError(&#39;binding_created&#39;) # 一系列有些耗时的校验 do_some_check() result = Binding.objects.create(settlement_sn=settlement_sn, sku_code=sku_code, enable=True) # 释放分布式锁 release_lock() return result 除此之外有没有别的办法呢，其实我们就是想锁住一个“不存在”的一行，google了一下，搜到一篇文章：https://rosscoded.com/blog/2018/05/02/locking-phantom-postgresql/，这里面在pg的数据库级别给出了解决办法。首先可以使用ON CONFLICT语句，其次还可以使用advisory locks，劝告锁，这是pg独有的一种锁，思路挺有意思，不过这是库级别的锁，用多了也不好。但是这些都得在代码里面写sql，最后我们还是选择了基于redis的简单的分布式锁来解决。
+回到之前说的，为啥强调是pg呢，因为后来试了一下，在mysql里面，其实是可以给不存在的数据加锁的，mysql里面这个叫gap lock，间隙锁，专门用来解决幻读问题。比如直接select * from binding where sku_code = &quot;123&quot; for update其实会同时加record Lock和gap lock，把已经存在的sku_code=123的行给锁住，同时还会锁住不存在的这些目标行，就是这时其他事务其实是没法写sku_code=123的数据的。mysql只有在可重复读以上的隔离级别才会自动加gap lock。</p>
+      <a href="https://schecterdamien.github.io/posts/2019/concurrency-problem/" class="post-read-more"
+        ></a
+      >
+    
+  </div>
+
+  <div class="postmeta">
+    <span class="meta-post">
+  <em class="fa fa-calendar-alt"></em
+  >&nbsp;Apr 24, 2019
+  
+</span>
+
+  </div>
+</article>
+
+      
+        <article class="post-preview">
+  <a href="https://schecterdamien.github.io/posts/2019/python-debug/">
+    <h2 class="post-title">怎么高效的调试python程序(1)</h2>
+  </a>
+  <div class="post-entry">
+    
+      <p>这篇文章是受到18年pycon上张翔大神演讲的启发，当时他的演讲的题目是《我的python进程怎么了》，主要是介绍了python进程调试的一些工具和方法，总结的比较全，当时在现场听完感觉受益匪浅，但是一直没去整理，这篇文章大致也是按照他的ppt的大纲来写的。
+我们代码写完后，运行时经常会遇到这样那样的问题，有一些很容易就能发现，因为代码跑到这里就直接就报错了，抛异常了，一般看日志的报错信息就能发现具体是哪里出了问题。但是还有一部分是没法从日志中看出来的：“为什么我的python进程卡住了”，“为什么我的python进程消耗这么多的内存”，“为什么我的python进程消耗了这么多的cpu”，卡住了是因为死锁了还是阻塞在io上了？消耗内存多了是因为存在内存泄漏还是数据结构设计的不合理？这种时候就需要一系列的工具来排查，工欲善其事，必先利其器。
+print&amp;log 相信对大部分人来说，print和log是最常用的调试方法了。在感觉有问题的地方，加上print和log来输出一些状态信息和变量，每个python程序员都是这方面的大师。
+print&amp;log大法简单粗暴，但往往很有效。缺点是需要提前了解你的代码，知道在哪里print&amp;log，而且需要修改后重启你的进程，调试完还要删除调试的代码。
+pdb pdb是python自带的一个库，为python程序提供了一种交互的源代码调试功能，主要特性包括设置断点、单步调试、进入函数调试、查看当前代码、查看栈片段、动态改变变量的值等。pdb可以认为是python下的gdb，两者保持了一样的用法。
+有两种不同的方法使用pdb，一种是直接在命令行指定参数启动pdb，比如直接python -m pdb pdb_test.py 可以进入命令行调试模式，接下来可以输入相应的调试命令进行调试，比如：l是查看当前代码，b是设置断点，n是执行下一行，单步调试。输入h可以查看各命令的使用说明。
+pdb单步执行太麻烦了，第二种方法是直接在代码中import pdb，直接在代码里需要调试的地方放一个 pdb.set_trace() 设置一个断点，程序运行到这里会暂停并进入pdb调试环境，可以用pdb 变量名查看变量，或者c继续运行。关于pdb更详细的使用方法，可以查看官方文档
+但是实际工作中，很多时候我们都是使用flask或者django等框架来开发，特别是django，很多时候需要在django shell里面进行一系列的调试，这个时候pdb就不好启动了，可以使用django-pdb。
+除了pdb，还有一个第三方的开源的python调试器Ipdb，具有语法高亮、tab补全，更友好的输出信息等高级功能，ipdb之于pdb，就相当于IPython之于Python，虽然都是实现相同的功能，但是，在易用性方面做了很多的改进。如果使用ide，比如PyCharm，很多都自带了断点设置，变量查看的功能，使用上更加方便友好。
+sys sys模块包括了一组非常实用的服务，内含很多函数方法和变量，用来处理Python运行时的配置以及资源，从而可以与当前程序之外的系统环境交互，是python程序用来请求解释器行为的接口。
+很长一段时间里面，都不清楚sys模块的重要性，说这是python标准库中最重要的模块之一也不为过了，后来陆续接触到sys模块的一些黑科技般的方法，才逐渐的了解到它的强大，里面很多的方法涉及到的背景和知识都能另起一篇文章了，所以这里只介绍一部分。
+sys._getframe([depth]): 返回一个栈帧对象，depth为栈顶部向下的深度，默认为0，返回的是当前的栈帧。
+&gt;&gt;&gt; import sys &gt;&gt;&gt; frame = sys._getframe() &gt;&gt;&gt; dir(frame) [&#39;__class__&#39;, &#39;__delattr__&#39;, &#39;__dir__&#39;, &#39;__doc__&#39;, &#39;__eq__&#39;, &#39;__format__&#39;, &#39;__ge__&#39;, &#39;__getattribute__&#39;, &#39;__gt__&#39;, &#39;__hash__&#39;, &#39;__init__&#39;, &#39;__init_subclass__&#39;, &#39;__le__&#39;, &#39;__lt__&#39;, &#39;__ne__&#39;, &#39;__new__&#39;, &#39;__reduce__&#39;, &#39;__reduce_ex__&#39;, &#39;__repr__&#39;, &#39;__setattr__&#39;, &#39;__sizeof__&#39;, &#39;__str__&#39;, &#39;__subclasshook__&#39;, &#39;clear&#39;, &#39;f_back&#39;, &#39;f_builtins&#39;, &#39;f_code&#39;, &#39;f_globals&#39;, &#39;f_lasti&#39;, &#39;f_lineno&#39;, &#39;f_locals&#39;, &#39;f_trace&#39;] &gt;&gt;&gt; assert frame.f_back == None &gt;&gt;&gt; &gt;&gt;&gt; dir(frame.</p>
+      <a href="https://schecterdamien.github.io/posts/2019/python-debug/" class="post-read-more"
+        ></a
+      >
+    
+  </div>
+
+  <div class="postmeta">
+    <span class="meta-post">
+  <em class="fa fa-calendar-alt"></em
+  >&nbsp;Feb 24, 2019
+  
+</span>
+
+  </div>
+</article>
+
+      
+        <article class="post-preview">
+  <a href="https://schecterdamien.github.io/posts/2019/unicode/">
+    <h2 class="post-title">unicode到底是个什么鬼</h2>
+  </a>
+  <div class="post-entry">
+    
+  </div>
+
+  <div class="postmeta">
+    <span class="meta-post">
+  <em class="fa fa-calendar-alt"></em
+  >&nbsp;Jan 24, 2019
+  
+</span>
+
+  </div>
+</article>
+
+      
+        <article class="post-preview">
+  <a href="https://schecterdamien.github.io/posts/2018/namedtuple/">
+    <h2 class="post-title">namedtuple第一个参数有什么用？</h2>
+  </a>
+  <div class="post-entry">
+    
+      <p>namedtuple是python中一个简单实用的数据结构，但是很不爽的是每次使用的时候都需要给第一个参数指定一个字符串，而这个字符串在实际使用中似乎并没有什么作用。比如
+&gt;&gt;&gt; from collections import namedtuple &gt;&gt;&gt; Student = namedtuple(&#39;StudentTuple&#39;, [&#39;sex&#39;, &#39;name&#39;, &#39;age&#39;]) &gt;&gt;&gt; s = Student(&#39;male&#39;, &#39;callmedad&#39;, 22) &gt;&gt;&gt; s.age 22 我操作的对象都是Student，而不是StudentTuple，那我为什么还要传一个&rsquo;StudentTuple&rsquo;，这个字符串似乎对我没有任何帮助。stackoverflow同样有人提了这个问题：传送门1，传送门2. 看了下回答，然后又看了下namedtuple的源码，总算明白了。 接着上面的代码，我们可以看下Student是个啥。
+&gt;&gt;&gt; import inspect &gt;&gt;&gt; inspect.isclass(Student) True &gt;&gt;&gt; Student &lt;class &#39;__main__.StudentTuple&#39;&gt; &gt;&gt;&gt; Student &lt;class &#39;__main__.StudentTuple&#39;&gt; &gt;&gt;&gt; s.__class__ &lt;class &#39;__main__.StudentTuple&#39;&gt; &gt;&gt;&gt; type(namedtuple) &lt;class &#39;function&#39;&gt; 我们大致知道这几点：1. Student是个类，并且只是一个类的引用，查看s.__class__知道，这个类定义的名字是StudentTuple，就是我们传的第一个参数。2. namedtuple是个方法，但是返回的是一个新的类，也就是说这是一个类的工厂方法。
+既然是一个生成类的工厂方法，那么肯定就需要知道类的名字，所以这就是第一个参数的意义。然后，这一切是怎么实现的呢？
+看下namedtuple的源码，其实非常简单粗暴
+def namedtuple(typename, field_names, *, verbose=False, rename=False, module=None): ... class_definition = _class_template.format( typename = typename, # 第一个参数 field_names = tuple(field_names), # 各种检验后的属性列表 num_fields = len(field_names), arg_list = repr(tuple(field_names)).</p>
+      <a href="https://schecterdamien.github.io/posts/2018/namedtuple/" class="post-read-more"
+        ></a
+      >
+    
+  </div>
+
+  <div class="postmeta">
+    <span class="meta-post">
+  <em class="fa fa-calendar-alt"></em
+  >&nbsp;Dec 19, 2018
+  
+</span>
+
+  </div>
+</article>
+
+      
+    </div>
+    
+  </div>
+
+    <footer>
+  
+
+<div class="social-icons">
+  
+    
+    
+      
+      <a href="link%20to%20social%20media" name="name of social media">
+        <em class="A icon from https://fontawesome.com/"></em>
+      </a>
+    
+  
+
+  
+</div>
+
+
+  
+  <div class="container">
+    <p class="credits copyright">
+      <a href="https://schecterdamien.github.io/about">wujinjing</a>
+      &nbsp;&copy;
+      2021
+      
+      &nbsp;&ndash;&nbsp;
+      <em class="fas fa-moon" id="dark-mode-toggle"></em>
+    </p>
+
+    <p class="credits theme-by">
+       <a href="https://gohugo.io">Hugo</a>&nbsp;
+      
+      <a href="https://github.com/matsuyoshi30/harbor">Harbor</a>
+    </p>
+  </div>
+</footer>
+
+  </body>
+</html>

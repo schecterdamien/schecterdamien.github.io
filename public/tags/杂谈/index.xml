@@ -1,0 +1,17 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+	<channel>
+		<title>杂谈 on </title>
+		<link>https://schecterdamien.github.io/tags/%E6%9D%82%E8%B0%88/</link>
+		<description>Recent content in 杂谈 </description>
+		<generator>Hugo -- gohugo.io</generator>
+		
+  		<language>ch</language>
+		
+		<managingEditor>Page(/tags/杂谈) (wujinjing)</managingEditor>
+    	
+  		<lastBuildDate>Mon, 19 Nov 2018 00:52:56 +0000</lastBuildDate>
+		
+		<atom:link href="/tags/%E6%9D%82%E8%B0%88/" rel="self" type="application/rss+xml" />
+		
+	</channel>
+</rss>

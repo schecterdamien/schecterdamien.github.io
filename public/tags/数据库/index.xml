@@ -1,0 +1,17 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+	<channel>
+		<title>数据库 on </title>
+		<link>https://schecterdamien.github.io/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/</link>
+		<description>Recent content in 数据库 </description>
+		<generator>Hugo -- gohugo.io</generator>
+		
+  		<language>ch</language>
+		
+		<managingEditor>Page(/tags/数据库) (wujinjing)</managingEditor>
+    	
+  		<lastBuildDate>Thu, 04 Mar 2021 23:35:01 +0000</lastBuildDate>
+		
+		<atom:link href="/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/" rel="self" type="application/rss+xml" />
+		
+	</channel>
+</rss>

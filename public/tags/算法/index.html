@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ch">
+  <head>
+    <meta charset="utf-8" />
+<title>算法</title>
+<meta name="description" 
+      content=""
+>
+
+  
+
+
+
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link
+  rel="alternate"
+  type="application/rss+xml"
+  href="https://schecterdamien.github.io/index.xml"
+  title=""
+/>
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="算法"/>
+<meta name="twitter:description" content=""/>
+
+
+
+<link rel="stylesheet" href="https://schecterdamien.github.io/fontawesome/css/all.min.css" />
+
+
+
+
+<link
+  crossorigin="anonymous"
+  href="/css/styles.min.css"
+  integrity=""
+  rel="preload stylesheet"
+  as="style"
+/>
+
+
+
+
+<link
+  id="dark-mode-theme"
+  crossorigin="anonymous"
+  href="/css/dark.min.css"
+  integrity=""
+  rel="preload stylesheet"
+  as="style"
+/>
+
+
+<script>
+  var darkTheme = document.getElementById('dark-mode-theme')
+  var storedTheme = localStorage.getItem('dark-mode-storage')
+
+  if (storedTheme === 'dark') {
+    darkTheme.disabled = false
+  } else if (storedTheme === 'light') {
+    darkTheme.disabled = true
+  }
+</script>
+
+
+<script defer crossorigin="anonymous" src="/js/theme.js" integrity=""></script>
+
+
+<script defer crossorigin="anonymous" src="/js/instantpage.min.js" integrity=""></script><meta name="generator" content="Hugo 0.101.0" />
+  </head>
+  <body>
+    
+  
+
+
+
+
+  <header>
+    <nav class="navbar">
+  <div class="nav">
+    
+      <a href="https://schecterdamien.github.io/" class="nav-logo">
+        <img
+          src="https://schecterdamien.github.io/images/icon.png"
+          width="50"
+          height="50"
+          alt="Logo"
+        />
+      </a>
+    
+
+    <ul class="nav-links">
+      
+        
+          <li>
+            <a href="/about/" id="About"
+              ><em class="fas fa-user fa-lg"></em
+            ></a>
+          </li>
+          
+      
+        
+          <li>
+            <a href="/tags" id="Tags"
+              ><em class="fas fa-tag fa-lg"></em
+            ></a>
+          </li>
+          
+      
+        
+          <li>
+            <a href="/search" id="Search"
+              ><em class="fas fa-search fa-lg"></em
+            ></a>
+          </li>
+          
+      
+        
+          <li>
+            <a href="/archives" id="Archives"
+              ><em class="fas fa-archive fa-lg"></em
+            ></a>
+          </li>
+          
+      
+    </ul>
+  </div>
+</nav>
+
+    <div class="intro-header">
+      <div class="container">
+        <div class="tags-heading">
+          
+            <h1>
+              算法
+            </h1>
+          
+          
+        </div>
+      </div>
+    </div>
+  </header>
+  
+
+    
+  <div class="container" role="main">
+    <div class="posts-list">
+      
+        
+      
+
+      
+        <article class="post-preview">
+  <a href="https://schecterdamien.github.io/posts/2019/cuckoo-filter/">
+    <h2 class="post-title">Cuckoo Filter</h2>
+  </a>
+  <div class="post-entry">
+    
+      <p>比Bloom-filter更好的过滤器 我们经常会遇到一个需求，就是判断一个元素是否在某个集合里面，首先想到的是维护一个HashMap（比如python中的字典），但是存储容量占比高，考虑到负载因子的存在，通常空间是不能被用满的，而一旦你的值很多例如上亿的时候，那 HashMap 占据的内存大小就变得很可观了，还需要存储对象的key（防止碰撞后没法确定元素），内存可能会装不下，我们需要一个空间效率更高的数据结构，这个时候我们一般会想到Bloom-filter。Bloom-filter可以看作k个hash函数+Bitmap，原理是通过k个hash函数将元素映射到Bitmap的k个位置，因为Bitmap只用1个bit就可以存储一个值，所以空间效率非常高，关于Bloom-filter，网络上已经有很多介绍的文章，就不赘述了。对于判断一个数据是否在某个海量数据的集合里面，Bloom-filter有奇效，比如应对缓存穿透、垃圾邮件的判断等
+但是Bloom-filter并不是完美的，比如Bloom-filter不支持删除，一旦需要删除一个元素，就只能重建Bloom-filter，简单的把元素hash后的k个位置置0会造成其他元素的误判（误判一个已经存在的元素为不存在，破坏了Bloom-filter的特性），对于此，有不少的Bloom-filter的变种，比如counting Bloom，d-left counting Bloom，大致的原理是把Bitmap位数组的每一位扩展为一个小的计数器。增加了实现复杂度的同时还降低了空间利用率，那有没有更好的替代方案呢？所以由此引入这次的主角：Cuckoo-Filter
+Cuckoo Hash 介绍Cuckoo-Filter之前得先说说Cuckoo Hash。Cuckoo Hash其实是一种解决hash冲突的策略。
+Cuckoo是布谷鸟的意思，也就是我们常说的杜鹃。“鸠占鹊巢”里面的“鸠”的就是类似杜鹃这种鸟类。这种鸟有一种即狡猾又贪婪的习性，它不肯自己筑巢，而是把蛋下到别的鸟巢里，而且它的幼鸟又会比别的鸟早出生，布谷幼鸟天生有一种残忍的动作，幼鸟会拼命把未出生的其它鸟蛋挤出窝巢，今后以便独享“养父母”的食物。借助生物学上这一典故，cuckoo hashing处理碰撞的方法，就是把原来占用位置的这个元素踢走，不过被踢出去的元素还要比鸟蛋幸运，因为它还有一个备用位置可以安置，如果备用位置上还有人，再把它踢走，如此往复。直到被踢的次数达到一个上限，才确认哈希表已满，并执行rehash操作，下图是一个Cuckoo Hash的例子：
+Cuckoo hash会有多个hash函数（一般是两个），把一个元素x映射到多个位置上，这一点和Bloom-filter很像，但是Cuckoo hash只会在多个位置中选择一个空的位置来存储x（或其他信息，取决于实现）。如果都满了，就随机选一个位置“踢走”那个元素，把那个元素踢到它自己的替代位置上去，如果它的替代位置也满了，则继续踢。图中就是要插入一个x，发现hash后的两个位置都被占了，所以随机选择了6的位置踢走了元素a，a找到了自己的备用位置4发现已经被c占了，接着把c踢走，c最后找到了一个空的位置1，整个插入过程完成。 这样会造成一个问题，就是插入的开销会在元素越来越多的时候变得越来越大，元素可能会一直踢来踢去，甚至出现死循环，比如下图（极端情况）
+元素x经过2个hash后的位置都被占了，随机选择一个位置12，把e踢走，e的备用位置被a占了，踢走a，a又踢走了b，b又踢走了c，c踢走了d，d的备用位置是12，于是又把刚插入的x给踢走了……陷入了死循环，所以需要一个上限，达到上限只能重建。此时可以衡量Cuckoo Hash的最大负载因子，负载因子 = 已经存入的元素 / 总的bucket。上图中这种可以看作只有一个slot的bucket，增加slot比如图c，可以大大减少冲突后踢走元素的概率，每个bucket对应一个hash值，相同hash值的元素都存在同一个bucket的不同slot中，除非2个bucket的8个slot都满了，否则不会踢元素。一维数组实现的cuckoo hash的负载因子大小和其他hash策略没什么区别，只有50%，但是多路slot的实现，比如图c中，能达到90%以上，可以说效率很高了。
+Cuckoo-Filter设计 本文主要参考了酷壳和CMU论文的实现，这篇论文首先提出了Cuckoo-Filter，很有参考价值。 论文中在Cuckoo-Filter的设计上比起基本的Cuckoo Hash有不少的优化。作为过滤器，空间肯定是能省就省，所以在每个slot中不会存原本的元素x，而是存的元素x的fingerprint(指纹，记做f)。由于存的是指纹，没有存x本身或者x的备用位置，或者那么在寻找元素的备用位置的时候怎么知道备用位置呢。作者采用了一种比较巧妙的办法，第一个地址用hash(x)来确定，第二个地址用hash(f)和第一个地址做异或来确定，这样不管当前是哪个地址，直接用当前地址和hash(f)做异或就可以得到另外一个地址。同时，插入的时候优先选择空的位置，而不是踢走其他的元素。
+刚开始其实还有一个比较疑惑的点，为什么求第二个地址的时候用的是hash(f)来异或呢，而不是直接异或f得到第二个地址，最后在论文中找到了答案(有些词不好翻译就直接贴原文了)：
+In addition, the fingerprint is hashed before it is xor-ed with the index of its current bucket to help distribute the items uniformly in the table. If the alternate location were calculated by “i ⊕ fingerprint” without hashing the fingerprint, the items kicked out from nearby buckets would land close to each other in the table, if the size of the fingerprint is small compared to the table size.</p>
+      <a href="https://schecterdamien.github.io/posts/2019/cuckoo-filter/" class="post-read-more"
+        ></a
+      >
+    
+  </div>
+
+  <div class="postmeta">
+    <span class="meta-post">
+  <em class="fa fa-calendar-alt"></em
+  >&nbsp;Apr 17, 2019
+  
+</span>
+
+  </div>
+</article>
+
+      
+        <article class="post-preview">
+  <a href="https://schecterdamien.github.io/posts/2018/interval-tree/">
+    <h2 class="post-title">判断多个区间是否有重叠</h2>
+  </a>
+  <div class="post-entry">
+    
+      <p>今天遇到个需求，大致意思是前端给我一堆商品按照阶梯定价的规则，比如订单数为0-200，价格是10块，订单数200-300，价格是8块……简化的数据结构是这样的：
+[ { &#34;min_orders&#34;: 0, &#34;max_orders&#34;: 200, &#34;price&#34;: 10 }, { &#34;min_orders&#34;: 200, &#34;max_orders&#34;: 300, &#34;price&#34;: 8 }, { &#34;min_orders&#34;: 400, &#34;max_orders&#34;: 500, &#34;price&#34;: 7 } ] 我需要对前端传的数据做校验，其中有一部分就是不同阶的上下界不能有交叉（前端给的阶梯数据不一定有序），比如有0-200的阶梯，如果再有100-300的阶梯那这个数据就有问题，因为没法定价。抽象出来问题其实就是判断多个区间（可能不连续）是否有重叠。
+初一看，这个问题其实很简单，两个for循环，第一层记住遍历过的区间，第二层把当前区间和之前遍历的区间一个个比较看是否交叉就可以了。这么做当然没问题，但是时间复杂度是O(n^2)，怎么看都觉得应该有更好的解决办法，第一遍的遍历是怎么都省不了的，所以优化到极致也不可能比O(n)低，第二遍其实就是个比较的过程，既然是比较的话，那就有思路了，可以联想到很多类似的问题，本质上和排序问题是差不多的。
+在stackoverflow看到一个相同的问题：search for interval overlap in list of intervals?。里面提到了一个办法：可以先对区间以左端点进行排序，然后再遍历区间，比较当前区间的左端点和上一个区间的右端点，如果当前的左端点比上一个右端点小，那么一定就有重叠的部分。第一遍排序时间复杂度是O(nlogn)，第二遍遍历时间复杂度是O(n)，所以总体的还是O(nlogn)，比如：
+[(4,6), (7,9), (1,5), (6,7)] 排序完之后是：
+[(1,5), (4,6), (6,7), (7,9)] 然后进行遍历比较，遍历到第二个区间的时候，左端点是4，比上个区间的右端点5要小，所以肯定有重叠的部分。
+第二种办法是构建区间树，上面说的效率最低的那种解决办法，第二层for循环是比较，既然是比较，那么就可以通过树这种结构来提高比较的效率，而不用和前面所有区间进行比较，所以很自然就想到可以构建一个二叉排序树，树的叶节点是每个区间。同时，树的查询效率和树的深度是有关系的，所以构建一个相对平衡的二叉排序树也能进一步提高效率，比如红黑树。算法导论上介绍了这种数据结构，节点是区间的红黑树——区间树。
+红黑树实现起来还是很麻烦的，找了一圈发现github上有现成的轮子——intervaltree，使用非常简单：
+&gt;&gt;&gt; from intervaltree import Interval, IntervalTree &gt;&gt;&gt; tree = IntervalTree() &gt;&gt;&gt; iv = Interval(4, 7) &gt;&gt;&gt; tree.add(iv) &gt;&gt;&gt; target_iv = Interval(5, 8) &gt;&gt;&gt; tree.</p>
+      <a href="https://schecterdamien.github.io/posts/2018/interval-tree/" class="post-read-more"
+        ></a
+      >
+    
+  </div>
+
+  <div class="postmeta">
+    <span class="meta-post">
+  <em class="fa fa-calendar-alt"></em
+  >&nbsp;Oct 10, 2018
+  
+</span>
+
+  </div>
+</article>
+
+      
+    </div>
+    
+  </div>
+
+    <footer>
+  
+
+<div class="social-icons">
+  
+    
+    
+      
+      <a href="link%20to%20social%20media" name="name of social media">
+        <em class="A icon from https://fontawesome.com/"></em>
+      </a>
+    
+  
+
+  
+</div>
+
+
+  
+  <div class="container">
+    <p class="credits copyright">
+      <a href="https://schecterdamien.github.io/about">wujinjing</a>
+      &nbsp;&copy;
+      2021
+      
+      &nbsp;&ndash;&nbsp;
+      <em class="fas fa-moon" id="dark-mode-toggle"></em>
+    </p>
+
+    <p class="credits theme-by">
+       <a href="https://gohugo.io">Hugo</a>&nbsp;
+      
+      <a href="https://github.com/matsuyoshi30/harbor">Harbor</a>
+    </p>
+  </div>
+</footer>
+
+  </body>
+</html>

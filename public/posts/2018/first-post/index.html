@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ch">
+  <head>
+    <meta charset="utf-8" />
+<title>我的第一篇博客</title>
+<meta name="description" 
+      content=""
+>
+
+  
+
+
+
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link
+  rel="alternate"
+  type="application/rss+xml"
+  href="https://schecterdamien.github.io/index.xml"
+  title=""
+/>
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="我的第一篇博客"/>
+<meta name="twitter:description" content="折腾博客时的一些感想 折腾了好久，博客终于搭出个大概，有个能看的样子，本来用github&#43;hexo就可以很简单搞定的问题，为什么会浪费这么多时间呢，因为一刚开始想的是自己独立建站，完全自己维护。
+首先，得有个服务器吧，还要有个域名吧。要存文章，tag，评论什么的肯定还要数据库吧，postgresql这么先进，就他吧。后端就用熟悉的flask吧，貌似最近还出了个flask-rest，可以自动生成restful风格的接口，嗯，拿来用用学习下，源码好像不多，要不趁机都看看。部署需要的工具链gunicorn、supervisor、nginx这几个肯定是要吧。对了，还有前端，正好学学前端比较火的框架，就vue吧，主要是比react简单一点，现在不都流行前后端完全分离吗，再小的项目也要有个好的架构啊，不然以后拓展就麻烦了！那就再加个node做中间层转发。好像差不多，对了还要做好安全方面的措施，还有容灾备份啊，而且博客最重要就是页面的设计，这个得好好参考下，是不是要买本设计的书看看…………
+结果，最后就是拖了几个月，就买了服务器、域名、设计了表，其他的一直无限期拖延。仔细想想，貌似这是我一直以来的毛病，分析这个过程，又引出了更多的感想。
+为什么要写博客 为什么要写博客，因为很多知识需要沉淀下来，需要“持久化”，人的大脑是快，就像内存，但是容量有限，很多知识不及时记下来的话，就会丢失，那其实学了和没学一样，对自身技术的进步不利。另一方面，想法也是一样，想法不沉淀下来，一闪而过，其实也相当于没出现，写下来也有助于思考，写出来的东西永远都是思考过一遍的，自我加工的。更重要的是，如果不经常写，那这种写的能力就会退化，到了最后内心澎湃万千，下笔或出口都平平淡淡，甚至会错位。那，其实对我来说，重要是要写东西，而不是使劲折腾怎么搭建博客，当然博客漂亮对我来说也重要，别人看着舒服，我自己写着也开心，但是现在在这上面浪费了太多的时间，以至最终什么都没写，实在是本末倒置。
+方法论 做事情，方法论很重要，我需要的是尽快搭建起一个博客可以写东西，但是上面的方案里面，vue以及页面设计我完全不熟，在这上面卡的时间是最多的。仔细想，我其实是在搭博客的过程中掺杂了很多其他的期望，比如能借此学习到很多新的技术，但是没有仔细思考可能付出的成本，在构想方案的时候我并没有意识到这点，于是无形中提高了门槛，最终又没有一个得到适当的正反馈，导致一再拖延（缺少正反馈是所有拖延的主要原因），所以这个做事情的方法论是有问题的，我应该是先用自己熟悉的技术，自己掌握的住的来快速实现一版，迅速看到效果，得到一个正反馈，然后再反复迭代优化。而且搭建博客和学习新技术其实是两件事，但是我却当成了一件事来做。当然，如果能hold住，那两者可以兼得，这也源于自己没有正确的评估成本。
+坚持 一直觉得时间的力量是很强大的，能让渺小变得伟大。一件很小的事情能够坚持做很久（比如几十年如一日的每天坚持跑步）那比在短时间内完成让人惊讶的事情（比如骑行西藏、突击熬夜复习得满分）难度更大，更显的伟大。其实这不是我第一个博客，之前还有个博客，最后死于没有坚持。我知道这很难，所以我不打算定个计划说每周一定要更新几篇，也许我会几周不写，也可能感觉来了一天写几篇，我并没有赋予博客其他的意义和目的性，也不想达成一个每天都坚持写博客的伟大成就，不过放在更广的时间维度上来看，这事我一直在坚持做，写的也是我想写的，最后也没法放弃，或许会让我觉得自己很厉害吧，哈哈。"/>
+
+
+
+<link rel="stylesheet" href="https://schecterdamien.github.io/fontawesome/css/all.min.css" />
+
+
+
+
+<link
+  crossorigin="anonymous"
+  href="/css/styles.min.css"
+  integrity=""
+  rel="preload stylesheet"
+  as="style"
+/>
+
+
+
+
+<link
+  id="dark-mode-theme"
+  crossorigin="anonymous"
+  href="/css/dark.min.css"
+  integrity=""
+  rel="preload stylesheet"
+  as="style"
+/>
+
+
+<script>
+  var darkTheme = document.getElementById('dark-mode-theme')
+  var storedTheme = localStorage.getItem('dark-mode-storage')
+
+  if (storedTheme === 'dark') {
+    darkTheme.disabled = false
+  } else if (storedTheme === 'light') {
+    darkTheme.disabled = true
+  }
+</script>
+
+
+<script defer crossorigin="anonymous" src="/js/theme.js" integrity=""></script>
+
+
+<script defer crossorigin="anonymous" src="/js/instantpage.min.js" integrity=""></script><meta name="generator" content="Hugo 0.101.0" />
+  </head>
+  <body>
+    
+  
+
+
+
+
+  <header>
+    <nav class="navbar">
+  <div class="nav">
+    
+      <a href="https://schecterdamien.github.io/" class="nav-logo">
+        <img
+          src="https://schecterdamien.github.io/images/icon.png"
+          width="50"
+          height="50"
+          alt="Logo"
+        />
+      </a>
+    
+
+    <ul class="nav-links">
+      
+        
+          <li>
+            <a href="/about/" id="About"
+              ><em class="fas fa-user fa-lg"></em
+            ></a>
+          </li>
+          
+      
+        
+          <li>
+            <a href="/tags" id="Tags"
+              ><em class="fas fa-tag fa-lg"></em
+            ></a>
+          </li>
+          
+      
+        
+          <li>
+            <a href="/search" id="Search"
+              ><em class="fas fa-search fa-lg"></em
+            ></a>
+          </li>
+          
+      
+        
+          <li>
+            <a href="/archives" id="Archives"
+              ><em class="fas fa-archive fa-lg"></em
+            ></a>
+          </li>
+          
+      
+    </ul>
+  </div>
+</nav>
+
+    <div class="intro-header">
+      <div class="container">
+        <div class="posts-heading">
+          
+            <h1>
+              我的第一篇博客
+            </h1>
+          
+          
+        </div>
+      </div>
+    </div>
+  </header>
+  
+
+    
+  <div class="container" role="main">
+    <article class="article" class="blog-post">
+      
+  <h3 id="折腾博客时的一些感想">折腾博客时的一些感想</h3>
+<p>    折腾了好久，博客终于搭出个大概，有个能看的样子，本来用github+hexo就可以很简单搞定的问题，为什么会浪费这么多时间呢，因为一刚开始想的是自己独立建站，完全自己维护。<br>
+    首先，得有个服务器吧，还要有个域名吧。要存文章，tag，评论什么的肯定还要数据库吧，postgresql这么先进，就他吧。后端就用熟悉的flask吧，貌似最近还出了个flask-rest，可以自动生成restful风格的接口，嗯，拿来用用学习下，源码好像不多，要不趁机都看看。部署需要的工具链gunicorn、supervisor、nginx这几个肯定是要吧。对了，还有前端，正好学学前端比较火的框架，就vue吧，主要是比react简单一点，现在不都流行前后端完全分离吗，再小的项目也要有个好的架构啊，不然以后拓展就麻烦了！那就再加个node做中间层转发。好像差不多，对了还要做好安全方面的措施，还有容灾备份啊，而且博客最重要就是页面的设计，这个得好好参考下，是不是要买本设计的书看看…………<br>
+    结果，最后就是拖了几个月，就买了服务器、域名、设计了表，其他的一直无限期拖延。仔细想想，貌似这是我一直以来的毛病，分析这个过程，又引出了更多的感想。</p>
+<h3 id="为什么要写博客">为什么要写博客</h3>
+<p>    为什么要写博客，因为很多知识需要沉淀下来，需要“持久化”，人的大脑是快，就像内存，但是容量有限，很多知识不及时记下来的话，就会丢失，那其实学了和没学一样，对自身技术的进步不利。另一方面，想法也是一样，想法不沉淀下来，一闪而过，其实也相当于没出现，写下来也有助于思考，写出来的东西永远都是思考过一遍的，自我加工的。更重要的是，如果不经常写，那这种写的能力就会退化，到了最后内心澎湃万千，下笔或出口都平平淡淡，甚至会错位。那，其实对我来说，重要是要写东西，而不是使劲折腾怎么搭建博客，当然博客漂亮对我来说也重要，别人看着舒服，我自己写着也开心，但是现在在这上面浪费了太多的时间，以至最终什么都没写，实在是本末倒置。</p>
+<h3 id="方法论">方法论</h3>
+<p>    做事情，方法论很重要，我需要的是尽快搭建起一个博客可以写东西，但是上面的方案里面，vue以及页面设计我完全不熟，在这上面卡的时间是最多的。仔细想，我其实是在搭博客的过程中掺杂了很多其他的期望，比如能借此学习到很多新的技术，但是没有仔细思考可能付出的成本，在构想方案的时候我并没有意识到这点，于是无形中提高了门槛，最终又没有一个得到适当的正反馈，导致一再拖延（缺少正反馈是所有拖延的主要原因），所以这个做事情的方法论是有问题的，我应该是先用自己熟悉的技术，自己掌握的住的来快速实现一版，迅速看到效果，得到一个正反馈，然后再反复迭代优化。而且搭建博客和学习新技术其实是两件事，但是我却当成了一件事来做。当然，如果能hold住，那两者可以兼得，这也源于自己没有正确的评估成本。</p>
+<h3 id="坚持">坚持</h3>
+<p>    一直觉得时间的力量是很强大的，能让渺小变得伟大。一件很小的事情能够坚持做很久（比如几十年如一日的每天坚持跑步）那比在短时间内完成让人惊讶的事情（比如骑行西藏、突击熬夜复习得满分）难度更大，更显的伟大。其实这不是我第一个博客，之前还有个博客，最后死于没有坚持。我知道这很难，所以我不打算定个计划说每周一定要更新几篇，也许我会几周不写，也可能感觉来了一天写几篇，我并没有赋予博客其他的意义和目的性，也不想达成一个每天都坚持写博客的伟大成就，不过放在更广的时间维度上来看，这事我一直在坚持做，写的也是我想写的，最后也没法放弃，或许会让我觉得自己很厉害吧，哈哈。</p>
+
+
+
+
+      
+        <div class="blog-tags">
+          
+            <a
+              href="https://schecterdamien.github.io/tags/%E6%9D%82%E8%B0%88/"
+              >杂谈</a
+            >&nbsp;
+          
+        </div>
+      
+
+      
+        <ul class="bottomnav"><li class="previous"><a href="/posts/2018/interval-tree/"
+          ><span>&lt;&lt;&nbsp;</span>判断多个区间是否有重叠</a
+        ></li></ul>
+
+      
+    </article>
+    
+    
+      
+
+    
+  </div>
+
+    <footer>
+  
+
+<div class="social-icons">
+  
+    
+    
+      
+      <a href="link%20to%20social%20media" name="name of social media">
+        <em class="A icon from https://fontawesome.com/"></em>
+      </a>
+    
+  
+
+  
+</div>
+
+
+  
+  <div class="container">
+    <p class="credits copyright">
+      <a href="https://schecterdamien.github.io/about">wujinjing</a>
+      &nbsp;&copy;
+      2021
+      
+      &nbsp;&ndash;&nbsp;
+      <em class="fas fa-moon" id="dark-mode-toggle"></em>
+    </p>
+
+    <p class="credits theme-by">
+       <a href="https://gohugo.io">Hugo</a>&nbsp;
+      
+      <a href="https://github.com/matsuyoshi30/harbor">Harbor</a>
+    </p>
+  </div>
+</footer>
+
+  </body>
+</html>

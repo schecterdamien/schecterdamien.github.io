@@ -1,0 +1,69 @@
+theme = "harbor"
+baseurl = "https://schecterdamien.github.io/"
+title = ""
+paginate = 8
+languageCode = "ch"
+DefaultContentLanguage = "ch"
+enableInlineShortcodes = true
+footnoteReturnLinkContents = "^"
+
+
+[params]
+  enableBottomNavigation = true
+
+
+# and disqus too.
+# disqusShortName = "yourdisqusshortname"
+
+#[params.goatcounter]
+#  domain="stats.domain.com"
+
+[Author]
+  name = "wujinjing"
+
+[outputs]
+  section = ["JSON", "HTML"]
+
+[[params.nav]]
+  identifier = "about"
+  name = "About"
+  icon = "fas fa-user fa-lg"
+  url = "/about/"
+  weight = 3
+
+[[params.nav]]
+  identifier = "tags"
+  name = "Tags"
+  icon = "fas fa-tag fa-lg"
+  url = "tags"
+  weight = 3
+
+
+
+[[params.nav]]
+  identifier = "search"
+  name = "Search"
+  icon = "fas fa-search fa-lg"
+  url = "search"
+  weight = 3
+
+[[params.nav]]
+  identifier = "archives"
+  name = "Archives"
+  icon = "fas fa-archive fa-lg"
+  url = "archives"
+  weight = 3
+
+# copy paste this block and change for each social media to add how many ever social media
+# acounts/links you want
+[[params.social]]
+  name="name of social media"
+  url="link to social media"
+  icon="A icon from https://fontawesome.com/"
+
+[params.logo]
+  url = "icon.png" # static/images/icon.png
+  width = 50
+  height = 50
+  alt = "Logo"
+

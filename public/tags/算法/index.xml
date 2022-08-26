@@ -1,0 +1,17 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+	<channel>
+		<title>算法 on </title>
+		<link>https://schecterdamien.github.io/tags/%E7%AE%97%E6%B3%95/</link>
+		<description>Recent content in 算法 </description>
+		<generator>Hugo -- gohugo.io</generator>
+		
+  		<language>ch</language>
+		
+		<managingEditor>Page(/tags/算法) (wujinjing)</managingEditor>
+    	
+  		<lastBuildDate>Wed, 17 Apr 2019 23:34:49 +0000</lastBuildDate>
+		
+		<atom:link href="/tags/%E7%AE%97%E6%B3%95/" rel="self" type="application/rss+xml" />
+		
+	</channel>
+</rss>

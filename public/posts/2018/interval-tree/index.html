@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ch">
+  <head>
+    <meta charset="utf-8" />
+<title>判断多个区间是否有重叠</title>
+<meta name="description" 
+      content=""
+>
+
+  
+
+
+
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link
+  rel="alternate"
+  type="application/rss+xml"
+  href="https://schecterdamien.github.io/index.xml"
+  title=""
+/>
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="判断多个区间是否有重叠"/>
+<meta name="twitter:description" content="今天遇到个需求，大致意思是前端给我一堆商品按照阶梯定价的规则，比如订单数为0-200，价格是10块，订单数200-300，价格是8块……简化的数据结构是这样的：
+[ { &#34;min_orders&#34;: 0, &#34;max_orders&#34;: 200, &#34;price&#34;: 10 }, { &#34;min_orders&#34;: 200, &#34;max_orders&#34;: 300, &#34;price&#34;: 8 }, { &#34;min_orders&#34;: 400, &#34;max_orders&#34;: 500, &#34;price&#34;: 7 } ] 我需要对前端传的数据做校验，其中有一部分就是不同阶的上下界不能有交叉（前端给的阶梯数据不一定有序），比如有0-200的阶梯，如果再有100-300的阶梯那这个数据就有问题，因为没法定价。抽象出来问题其实就是判断多个区间（可能不连续）是否有重叠。
+初一看，这个问题其实很简单，两个for循环，第一层记住遍历过的区间，第二层把当前区间和之前遍历的区间一个个比较看是否交叉就可以了。这么做当然没问题，但是时间复杂度是O(n^2)，怎么看都觉得应该有更好的解决办法，第一遍的遍历是怎么都省不了的，所以优化到极致也不可能比O(n)低，第二遍其实就是个比较的过程，既然是比较的话，那就有思路了，可以联想到很多类似的问题，本质上和排序问题是差不多的。
+在stackoverflow看到一个相同的问题：search for interval overlap in list of intervals?。里面提到了一个办法：可以先对区间以左端点进行排序，然后再遍历区间，比较当前区间的左端点和上一个区间的右端点，如果当前的左端点比上一个右端点小，那么一定就有重叠的部分。第一遍排序时间复杂度是O(nlogn)，第二遍遍历时间复杂度是O(n)，所以总体的还是O(nlogn)，比如：
+[(4,6), (7,9), (1,5), (6,7)] 排序完之后是：
+[(1,5), (4,6), (6,7), (7,9)] 然后进行遍历比较，遍历到第二个区间的时候，左端点是4，比上个区间的右端点5要小，所以肯定有重叠的部分。
+第二种办法是构建区间树，上面说的效率最低的那种解决办法，第二层for循环是比较，既然是比较，那么就可以通过树这种结构来提高比较的效率，而不用和前面所有区间进行比较，所以很自然就想到可以构建一个二叉排序树，树的叶节点是每个区间。同时，树的查询效率和树的深度是有关系的，所以构建一个相对平衡的二叉排序树也能进一步提高效率，比如红黑树。算法导论上介绍了这种数据结构，节点是区间的红黑树——区间树。
+红黑树实现起来还是很麻烦的，找了一圈发现github上有现成的轮子——intervaltree，使用非常简单：
+&gt;&gt;&gt; from intervaltree import Interval, IntervalTree &gt;&gt;&gt; tree = IntervalTree() &gt;&gt;&gt; iv = Interval(4, 7) &gt;&gt;&gt; tree.add(iv) &gt;&gt;&gt; target_iv = Interval(5, 8) &gt;&gt;&gt; tree."/>
+
+
+
+<link rel="stylesheet" href="https://schecterdamien.github.io/fontawesome/css/all.min.css" />
+
+
+
+
+<link
+  crossorigin="anonymous"
+  href="/css/styles.min.css"
+  integrity=""
+  rel="preload stylesheet"
+  as="style"
+/>
+
+
+
+
+<link
+  id="dark-mode-theme"
+  crossorigin="anonymous"
+  href="/css/dark.min.css"
+  integrity=""
+  rel="preload stylesheet"
+  as="style"
+/>
+
+
+<script>
+  var darkTheme = document.getElementById('dark-mode-theme')
+  var storedTheme = localStorage.getItem('dark-mode-storage')
+
+  if (storedTheme === 'dark') {
+    darkTheme.disabled = false
+  } else if (storedTheme === 'light') {
+    darkTheme.disabled = true
+  }
+</script>
+
+
+<script defer crossorigin="anonymous" src="/js/theme.js" integrity=""></script>
+
+
+<script defer crossorigin="anonymous" src="/js/instantpage.min.js" integrity=""></script><meta name="generator" content="Hugo 0.101.0" />
+  </head>
+  <body>
+    
+  
+
+
+
+
+  <header>
+    <nav class="navbar">
+  <div class="nav">
+    
+      <a href="https://schecterdamien.github.io/" class="nav-logo">
+        <img
+          src="https://schecterdamien.github.io/images/icon.png"
+          width="50"
+          height="50"
+          alt="Logo"
+        />
+      </a>
+    
+
+    <ul class="nav-links">
+      
+        
+          <li>
+            <a href="/about/" id="About"
+              ><em class="fas fa-user fa-lg"></em
+            ></a>
+          </li>
+          
+      
+        
+          <li>
+            <a href="/tags" id="Tags"
+              ><em class="fas fa-tag fa-lg"></em
+            ></a>
+          </li>
+          
+      
+        
+          <li>
+            <a href="/search" id="Search"
+              ><em class="fas fa-search fa-lg"></em
+            ></a>
+          </li>
+          
+      
+        
+          <li>
+            <a href="/archives" id="Archives"
+              ><em class="fas fa-archive fa-lg"></em
+            ></a>
+          </li>
+          
+      
+    </ul>
+  </div>
+</nav>
+
+    <div class="intro-header">
+      <div class="container">
+        <div class="posts-heading">
+          
+            <h1>
+              判断多个区间是否有重叠
+            </h1>
+          
+          
+        </div>
+      </div>
+    </div>
+  </header>
+  
+
+    
+  <div class="container" role="main">
+    <article class="article" class="blog-post">
+      
+  <p>    今天遇到个需求，大致意思是前端给我一堆商品按照阶梯定价的规则，比如订单数为0-200，价格是10块，订单数200-300，价格是8块……简化的数据结构是这样的：</p>
+<pre tabindex="0"><code>[
+  {
+    &#34;min_orders&#34;: 0,
+    &#34;max_orders&#34;: 200,
+    &#34;price&#34;: 10
+  },
+  {
+    &#34;min_orders&#34;: 200,
+    &#34;max_orders&#34;: 300,
+    &#34;price&#34;: 8
+  },
+  {
+    &#34;min_orders&#34;: 400,
+    &#34;max_orders&#34;: 500,
+    &#34;price&#34;: 7
+  }
+]
+</code></pre><p>    我需要对前端传的数据做校验，其中有一部分就是不同阶的上下界不能有交叉（前端给的阶梯数据不一定有序），比如有0-200的阶梯，如果再有100-300的阶梯那这个数据就有问题，因为没法定价。抽象出来问题其实就是判断多个区间（可能不连续）是否有重叠。<br>
+    初一看，这个问题其实很简单，两个for循环，第一层记住遍历过的区间，第二层把当前区间和之前遍历的区间一个个比较看是否交叉就可以了。这么做当然没问题，但是时间复杂度是O(n^2)，怎么看都觉得应该有更好的解决办法，第一遍的遍历是怎么都省不了的，所以优化到极致也不可能比O(n)低，第二遍其实就是个比较的过程，既然是比较的话，那就有思路了，可以联想到很多类似的问题，本质上和排序问题是差不多的。<br>
+    在stackoverflow看到一个相同的问题：<a href="https://stackoverflow.com/questions/4446112/search-for-interval-overlap-in-list-of-intervals">search for interval overlap in list of intervals?</a>。里面提到了一个办法：可以先对区间以左端点进行排序，然后再遍历区间，比较当前区间的左端点和上一个区间的右端点，如果当前的左端点比上一个右端点小，那么一定就有重叠的部分。第一遍排序时间复杂度是O(nlogn)，第二遍遍历时间复杂度是O(n)，所以总体的还是O(nlogn)，比如：</p>
+<pre tabindex="0"><code>[(4,6), (7,9), (1,5), (6,7)]
+</code></pre><p>    排序完之后是：</p>
+<pre tabindex="0"><code>[(1,5), (4,6), (6,7), (7,9)]
+</code></pre><p>    然后进行遍历比较，遍历到第二个区间的时候，左端点是4，比上个区间的右端点5要小，所以肯定有重叠的部分。</p>
+<p>    <strong>第二种办法是构建区间树</strong>，上面说的效率最低的那种解决办法，第二层for循环是比较，既然是比较，那么就可以通过树这种结构来提高比较的效率，而不用和前面所有区间进行比较，所以很自然就想到可以构建一个二叉排序树，树的叶节点是每个区间。同时，树的查询效率和树的深度是有关系的，所以构建一个相对平衡的二叉排序树也能进一步提高效率，比如红黑树。算法导论上介绍了这种数据结构，<strong>节点是区间的红黑树——区间树</strong>。<br>
+    红黑树实现起来还是很麻烦的，找了一圈发现github上有现成的轮子——<a href="https://github.com/chaimleib/intervaltree">intervaltree</a>，使用非常简单：</p>
+<pre tabindex="0"><code>&gt;&gt;&gt; from intervaltree import Interval, IntervalTree
+
+&gt;&gt;&gt; tree = IntervalTree()
+&gt;&gt;&gt; iv = Interval(4, 7)
+&gt;&gt;&gt; tree.add(iv)
+
+&gt;&gt;&gt; target_iv = Interval(5, 8)
+&gt;&gt;&gt; tree.overlaps(target_iv)
+True
+&gt;&gt;&gt; target_iv_2 = Interval(7, 10)
+&gt;&gt;&gt; tree.overlaps(target_iv_2)
+False
+</code></pre><p>     更多用法可以参考<a href="https://pypi.org/project/intervaltree/">intervaltree · PyPI</a></p>
+
+
+
+
+      
+        <div class="blog-tags">
+          
+            <a
+              href="https://schecterdamien.github.io/tags/%E7%AE%97%E6%B3%95/"
+              >算法</a
+            >&nbsp;
+          
+        </div>
+      
+
+      
+        <ul class="bottomnav"><li class="previous"><a href="/posts/2018/about-absurd/"
+          ><span>&lt;&lt;&nbsp;</span>关于语言的杂想</a
+        ></li><li class="next"><a href="/posts/2018/first-post/"
+          >我的第一篇博客<span>&nbsp;>></span></a
+        ></li></ul>
+
+      
+    </article>
+    
+    
+      
+
+    
+  </div>
+
+    <footer>
+  
+
+<div class="social-icons">
+  
+    
+    
+      
+      <a href="link%20to%20social%20media" name="name of social media">
+        <em class="A icon from https://fontawesome.com/"></em>
+      </a>
+    
+  
+
+  
+</div>
+
+
+  
+  <div class="container">
+    <p class="credits copyright">
+      <a href="https://schecterdamien.github.io/about">wujinjing</a>
+      &nbsp;&copy;
+      2021
+      
+      &nbsp;&ndash;&nbsp;
+      <em class="fas fa-moon" id="dark-mode-toggle"></em>
+    </p>
+
+    <p class="credits theme-by">
+       <a href="https://gohugo.io">Hugo</a>&nbsp;
+      
+      <a href="https://github.com/matsuyoshi30/harbor">Harbor</a>
+    </p>
+  </div>
+</footer>
+
+  </body>
+</html>

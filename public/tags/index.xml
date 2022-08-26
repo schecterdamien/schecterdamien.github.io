@@ -1,0 +1,17 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+	<channel>
+		<title>Tags on </title>
+		<link>https://schecterdamien.github.io/tags/</link>
+		<description>Recent content in Tags </description>
+		<generator>Hugo -- gohugo.io</generator>
+		
+  		<language>ch</language>
+		
+		<managingEditor>Page(/tags) (wujinjing)</managingEditor>
+    	
+  		<lastBuildDate>Thu, 23 Dec 2021 22:35:18 +0000</lastBuildDate>
+		
+		<atom:link href="/tags/" rel="self" type="application/rss+xml" />
+		
+	</channel>
+</rss>
