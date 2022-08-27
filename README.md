@@ -1,0 +1,2 @@
+# schecterdamien.github.io
+Blog 
