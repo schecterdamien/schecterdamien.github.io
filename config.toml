@@ -19,7 +19,7 @@ googleAnalytics = ""
 
 [params.valine]
   enable = false
-  lang = 'en' # zh-CN
+  lang = 'zh-CN' # zh-CN
   appId = ''
   appKey = ''
   placeholder = 'Say Something......'
@@ -59,4 +59,3 @@ tag = "tags"
     noClasses = true
     style = "monokai" # github, dracula, vim, monokai
     tabWidth = 4
-    
