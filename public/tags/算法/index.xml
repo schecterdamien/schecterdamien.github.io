@@ -6,7 +6,25 @@
     <description>Recent content in 算法 on Firsy</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>ch</language>
-    <lastBuildDate>Wed, 17 Apr 2019 23:34:49 +0000</lastBuildDate><atom:link href="https://schecterdamien.github.io/tags/%E7%AE%97%E6%B3%95/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sat, 27 Aug 2022 22:37:38 +0800</lastBuildDate><atom:link href="https://schecterdamien.github.io/tags/%E7%AE%97%E6%B3%95/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>数状数组</title>
+      <link>https://schecterdamien.github.io/posts/2022/binary-indexed-tree/</link>
+      <pubDate>Sat, 27 Aug 2022 22:37:38 +0800</pubDate>
+      
+      <guid>https://schecterdamien.github.io/posts/2022/binary-indexed-tree/</guid>
+      <description>树状数组 树状数组或二元索引树（Binary Indexed Tree），又以其发明者命名为Fenwick树，最早由Peter M. Fenwick于1994年以A New Data Structure for Cumulative Frequency Tables为题发表在SOFTWARE PRACTICE AND EXPERIENCE。
+其初衷是解决数据压缩里的累积频率（Cumulative Frequency）的计算问题，现多用于高效计算数列的前缀和， 区间和。它可以以O(log n)的时间得到任意前缀和，并同时支持在O(log n)时间内支持动态单点值的修改。空间复杂度O(n)
+怎么理解树状数组要解决的问题呢？ 举例来说，树状数组所能解决的典型问题就是存在一个长度为n的数组，我们如何高效进行如下操作：
+add(idx, num)：将num加到位置idx的数字上。 prefixSum(idx)：求从数组第一个位置到第idx（含idx）的所有数字的和。 rangeSum(from_idx, to_idx)：求从数组第from_idx个位置到第to_idx个位置的所有数字的和 要解决以上问题，可以有以下几种思路
+最开始想到的，肯定就是直接基于原数组去暴力实现这几个函数，这样，add就是O(1)时间复杂度，predixSum就是O(n)时间复杂度，rangeSum(from_idx，to_idx)也是O(n)时间复杂度，但是一般这种是不符合要求的，本来就是要解决特定场景下的问题，查询的时间复杂度太高 或者再建立一个前缀和数组，每一位保存前面所有数的累加值，额外的空间复杂度是O（1），prefixSum(idx)时间复杂度是O(1)，rangeSum(from_idx，to_idx)=prefixSum(to_idx)-prefixSum(from_idx)时间复杂度为O(1)，但是add(idx，num)就需要更新idx到数组末尾的每一个位的值，时间复杂度O（n），除非add操作非常低频，否则这种做法也不合适 数组数组这种数据结构能平衡求前缀和和更新操作，使之都是O（logn）时间复杂度，虽然需要额外的O（n）空间
+怎么做到的 数状数组逻辑上可以看作一颗多叉树，父节点等于子节点之和，但是实际存储还是按照数组的形式来存储数组的。 树状数组的父节点和子节点的下标关系是parent = son + 2^k，其中 k 是子节点下标对应二进制末尾 0 的个数，也就是说一个节点的子节点是符合以下条件的节点：子节点的下标加上下标二进制形式最末尾的1所代表的数等于父节点的下标。
+比如8的二进制是 0b1000，那么有 7（0b111）加上最末尾的1正好等于8、6（0b110）加上最末尾的1也就是2（0b10）正好等于8、4（0b100）加上最末尾的1也就是4（0b100）正好等于8&amp;hellip;&amp;hellip;
+再观察上图，可以发现一些规律
+树状数组里奇数节点正好等于原数组对应节点的值，因为奇数在最末尾肯定是1，1后面没有0。有2个子节点的，正好其二进制末尾的1后面有1个0。有3个子节点的，正好末尾后面有2个0。有4个子节点的，其末尾后面有3个0。可以引申一个节点的子节点的个数 n = k + 1，其中 k 是子节点下标对应二进制末尾 0 的个数 树状数组里某个节点的值对应原数组m个节点的值累加，m=2^k，其中 k 是子节点下标对应二进制末尾 0 的个数。且这m个节点是连续的 树状节点的下标为i，那对应到原数组里m个连续节点的左边界是i-2^k+1，右边界是i。其中 k 是子节点下标对应二进制末尾 0 的个数 可以发现树状节点很重要的一个操作是要求序号二进制最后一位1，也就是lowbit，可以定义一个函数：
+func lowBit(x int) int { return x &amp;amp; -x } 这里用到了位运算的技巧，因为数值在计算机中都是用补码表示的，负数等于正数原码按位取反再+1，再和原数进行 &amp;amp; 操作就可以得到lowbit，随便找个数换成二进制形式算一下就能理解了。</description>
+    </item>
+    
     <item>
       <title>Cuckoo Filter</title>
       <link>https://schecterdamien.github.io/posts/2019/cuckoo-filter/</link>

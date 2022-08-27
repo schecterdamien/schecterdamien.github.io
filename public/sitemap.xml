@@ -2,19 +2,25 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>https://schecterdamien.github.io/</loc>
+    <lastmod>2022-08-27T22:37:38+08:00</lastmod>
+  </url><url>
+    <loc>https://schecterdamien.github.io/posts/</loc>
+    <lastmod>2022-08-27T22:37:38+08:00</lastmod>
+  </url><url>
+    <loc>https://schecterdamien.github.io/tags/</loc>
+    <lastmod>2022-08-27T22:37:38+08:00</lastmod>
+  </url><url>
+    <loc>https://schecterdamien.github.io/posts/2022/binary-indexed-tree/</loc>
+    <lastmod>2022-08-27T22:37:38+08:00</lastmod>
+  </url><url>
+    <loc>https://schecterdamien.github.io/tags/%E7%AE%97%E6%B3%95/</loc>
+    <lastmod>2022-08-27T22:37:38+08:00</lastmod>
+  </url><url>
     <loc>https://schecterdamien.github.io/about/</loc>
     <lastmod>2022-08-23T22:50:36+08:00</lastmod>
   </url><url>
-    <loc>https://schecterdamien.github.io/</loc>
-    <lastmod>2021-12-23T22:35:18+00:00</lastmod>
-  </url><url>
     <loc>https://schecterdamien.github.io/posts/2021/http2-wireshark/</loc>
-    <lastmod>2021-12-23T22:35:18+00:00</lastmod>
-  </url><url>
-    <loc>https://schecterdamien.github.io/posts/</loc>
-    <lastmod>2021-12-23T22:35:18+00:00</lastmod>
-  </url><url>
-    <loc>https://schecterdamien.github.io/tags/</loc>
     <lastmod>2021-12-23T22:35:18+00:00</lastmod>
   </url><url>
     <loc>https://schecterdamien.github.io/tags/web/</loc>
@@ -39,9 +45,6 @@
     <lastmod>2019-04-24T21:31:41+00:00</lastmod>
   </url><url>
     <loc>https://schecterdamien.github.io/posts/2019/cuckoo-filter/</loc>
-    <lastmod>2019-04-17T23:34:49+00:00</lastmod>
-  </url><url>
-    <loc>https://schecterdamien.github.io/tags/%E7%AE%97%E6%B3%95/</loc>
     <lastmod>2019-04-17T23:34:49+00:00</lastmod>
   </url><url>
     <loc>https://schecterdamien.github.io/posts/2019/python-debug/</loc>
