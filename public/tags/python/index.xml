@@ -1,17 +1,78 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
-	<channel>
-		<title>python on </title>
-		<link>https://schecterdamien.github.io/tags/python/</link>
-		<description>Recent content in python </description>
-		<generator>Hugo -- gohugo.io</generator>
-		
-  		<language>ch</language>
-		
-		<managingEditor>Page(/tags/python) (wujinjing)</managingEditor>
-    	
-  		<lastBuildDate>Wed, 24 Apr 2019 21:31:41 +0000</lastBuildDate>
-		
-		<atom:link href="/tags/python/" rel="self" type="application/rss+xml" />
-		
-	</channel>
+  <channel>
+    <title>python on Firsy</title>
+    <link>https://schecterdamien.github.io/tags/python/</link>
+    <description>Recent content in python on Firsy</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>ch</language>
+    <lastBuildDate>Wed, 24 Apr 2019 21:31:41 +0000</lastBuildDate><atom:link href="https://schecterdamien.github.io/tags/python/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>记一次并发问题的排查</title>
+      <link>https://schecterdamien.github.io/posts/2019/concurrency-problem/</link>
+      <pubDate>Wed, 24 Apr 2019 21:31:41 +0000</pubDate>
+      
+      <guid>https://schecterdamien.github.io/posts/2019/concurrency-problem/</guid>
+      <description>起源 事情的起源是这样的，Binding是一张多对多的表，主要有sku_code，settlement_sn，enable这几个字段，但是逻辑上sku_code，settlemen_sn，enable=True的在表中应该是唯一的。因为enable=False可能有多条，所以不能在数据库上加联合唯一的索引，但是代码里面有判断。然后有一天测试发现出现两条记录的sku_code，settlemen_sn相同且enable都为True，然后看代码，创建Binding的代码大致是这样的
+def create_binding(sku_code, settlement_sn)： if not Binding.objects.filter(sku_code=sku_code, settlement_sn=settlement_sn, enable=True).exist(): raise OperationError(&amp;#39;binding_created&amp;#39;) # 一系列有些耗时的校验 do_some_check() return Binding.objects.create(settlement_sn=settlement_sn, sku_code=sku_code, enable=True) 先判断这样的Binding是否存在，存在的话就直接抛异常，不存在的话再进行其他的校验，最后生成对应的Binding。一般情况下没问题，但是如果并发请求的sku_code和settlement_sn都相同，接到请求的几个worker同时从数据库查询发现目标binding不存在，做出可以创建的判断（因为下面存在一些耗时的校验让这种情况的概率变得很高），然后就创建了sku_code和settlement_sn都相同的记录。 因为是公司内部使用的财务规则系统，也就几个人在用，所以做的时候没怎么考虑并发问题。最后发现其实是前端没有做按钮的防重点，用户连续在按钮上点了两下，造成了这个问题。 我们用的是pg（等下会说为什么强调是pg），这里其实是发生了幻读。那改事务隔离级别可以解决吗，可重复读和串行化不是能解决幻读吗。。。。。肯定不行，一言不合就改数据库事务隔离级别肯定是不行的，而且改了也没法解决这种幻读问题(后来才知道其实串行化可以，但需要加上失败重试的逻辑)。那加锁吧！当时也没多想，迷迷糊糊的在判断上加个锁：
+def create_binding(sku_code, settlement_sn)： if not Binding.objects.filter(sku_code=sku_code, settlement_sn=settlement_sn, enable=True).select_for_update).exist(): raise OperationError(&amp;#39;binding_created&amp;#39;) ..... 查询上加上select_for_update()，阻塞住并发的读，完美！发到测试环境，一看，并不行&amp;hellip;还是会生成重，再回头看才明白这个锁有问题。首先，django的select_for_update加上exist()其实是不会生成&amp;rsquo;select &amp;hellip; for update&amp;rsquo;语句的，然后就算生成了，但是因为没有这样的数据，所以没有row可以被锁，这个锁其实没有任何作用。
+解决 那怎么解决呢，分布式锁肯定是可以的，给判断的代码块加上锁，这样创建binding的请求就变成串行的了，如果对并发没要求，比如我们这种场景为了防止重点，可以使用这种办法。代码块就变成这样了：
+def create_binding(sku_code, settlement_sn)： # 获取分布式锁 get_lock() if not Binding.objects.filter(sku_code=sku_code, settlement_sn=settlement_sn, enable=True).exist(): raise OperationError(&amp;#39;binding_created&amp;#39;) # 一系列有些耗时的校验 do_some_check() result = Binding.objects.create(settlement_sn=settlement_sn, sku_code=sku_code, enable=True) # 释放分布式锁 release_lock() return result 除此之外有没有别的办法呢，其实我们就是想锁住一个“不存在”的一行，google了一下，搜到一篇文章：https://rosscoded.com/blog/2018/05/02/locking-phantom-postgresql/，这里面在pg的数据库级别给出了解决办法。首先可以使用ON CONFLICT语句，其次还可以使用advisory locks，劝告锁，这是pg独有的一种锁，思路挺有意思，不过这是库级别的锁，用多了也不好。但是这些都得在代码里面写sql，最后我们还是选择了基于redis的简单的分布式锁来解决。
+回到之前说的，为啥强调是pg呢，因为后来试了一下，在mysql里面，其实是可以给不存在的数据加锁的，mysql里面这个叫gap lock，间隙锁，专门用来解决幻读问题。比如直接select * from binding where sku_code = &amp;quot;123&amp;quot; for update其实会同时加record Lock和gap lock，把已经存在的sku_code=123的行给锁住，同时还会锁住不存在的这些目标行，就是这时其他事务其实是没法写sku_code=123的数据的。mysql只有在可重复读以上的隔离级别才会自动加gap lock。</description>
+    </item>
+    
+    <item>
+      <title>怎么高效的调试python程序(1)</title>
+      <link>https://schecterdamien.github.io/posts/2019/python-debug/</link>
+      <pubDate>Sun, 24 Feb 2019 11:47:07 +0000</pubDate>
+      
+      <guid>https://schecterdamien.github.io/posts/2019/python-debug/</guid>
+      <description>这篇文章是受到18年pycon上张翔大神演讲的启发，当时他的演讲的题目是《我的python进程怎么了》，主要是介绍了python进程调试的一些工具和方法，总结的比较全，当时在现场听完感觉受益匪浅，但是一直没去整理，这篇文章大致也是按照他的ppt的大纲来写的。
+我们代码写完后，运行时经常会遇到这样那样的问题，有一些很容易就能发现，因为代码跑到这里就直接就报错了，抛异常了，一般看日志的报错信息就能发现具体是哪里出了问题。但是还有一部分是没法从日志中看出来的：“为什么我的python进程卡住了”，“为什么我的python进程消耗这么多的内存”，“为什么我的python进程消耗了这么多的cpu”，卡住了是因为死锁了还是阻塞在io上了？消耗内存多了是因为存在内存泄漏还是数据结构设计的不合理？这种时候就需要一系列的工具来排查，工欲善其事，必先利其器。
+print&amp;amp;log 相信对大部分人来说，print和log是最常用的调试方法了。在感觉有问题的地方，加上print和log来输出一些状态信息和变量，每个python程序员都是这方面的大师。
+print&amp;amp;log大法简单粗暴，但往往很有效。缺点是需要提前了解你的代码，知道在哪里print&amp;amp;log，而且需要修改后重启你的进程，调试完还要删除调试的代码。
+pdb pdb是python自带的一个库，为python程序提供了一种交互的源代码调试功能，主要特性包括设置断点、单步调试、进入函数调试、查看当前代码、查看栈片段、动态改变变量的值等。pdb可以认为是python下的gdb，两者保持了一样的用法。
+有两种不同的方法使用pdb，一种是直接在命令行指定参数启动pdb，比如直接python -m pdb pdb_test.py 可以进入命令行调试模式，接下来可以输入相应的调试命令进行调试，比如：l是查看当前代码，b是设置断点，n是执行下一行，单步调试。输入h可以查看各命令的使用说明。
+pdb单步执行太麻烦了，第二种方法是直接在代码中import pdb，直接在代码里需要调试的地方放一个 pdb.set_trace() 设置一个断点，程序运行到这里会暂停并进入pdb调试环境，可以用pdb 变量名查看变量，或者c继续运行。关于pdb更详细的使用方法，可以查看官方文档
+但是实际工作中，很多时候我们都是使用flask或者django等框架来开发，特别是django，很多时候需要在django shell里面进行一系列的调试，这个时候pdb就不好启动了，可以使用django-pdb。
+除了pdb，还有一个第三方的开源的python调试器Ipdb，具有语法高亮、tab补全，更友好的输出信息等高级功能，ipdb之于pdb，就相当于IPython之于Python，虽然都是实现相同的功能，但是，在易用性方面做了很多的改进。如果使用ide，比如PyCharm，很多都自带了断点设置，变量查看的功能，使用上更加方便友好。
+sys sys模块包括了一组非常实用的服务，内含很多函数方法和变量，用来处理Python运行时的配置以及资源，从而可以与当前程序之外的系统环境交互，是python程序用来请求解释器行为的接口。
+很长一段时间里面，都不清楚sys模块的重要性，说这是python标准库中最重要的模块之一也不为过了，后来陆续接触到sys模块的一些黑科技般的方法，才逐渐的了解到它的强大，里面很多的方法涉及到的背景和知识都能另起一篇文章了，所以这里只介绍一部分。
+sys._getframe([depth]): 返回一个栈帧对象，depth为栈顶部向下的深度，默认为0，返回的是当前的栈帧。
+&amp;gt;&amp;gt;&amp;gt; import sys &amp;gt;&amp;gt;&amp;gt; frame = sys._getframe() &amp;gt;&amp;gt;&amp;gt; dir(frame) [&amp;#39;__class__&amp;#39;, &amp;#39;__delattr__&amp;#39;, &amp;#39;__dir__&amp;#39;, &amp;#39;__doc__&amp;#39;, &amp;#39;__eq__&amp;#39;, &amp;#39;__format__&amp;#39;, &amp;#39;__ge__&amp;#39;, &amp;#39;__getattribute__&amp;#39;, &amp;#39;__gt__&amp;#39;, &amp;#39;__hash__&amp;#39;, &amp;#39;__init__&amp;#39;, &amp;#39;__init_subclass__&amp;#39;, &amp;#39;__le__&amp;#39;, &amp;#39;__lt__&amp;#39;, &amp;#39;__ne__&amp;#39;, &amp;#39;__new__&amp;#39;, &amp;#39;__reduce__&amp;#39;, &amp;#39;__reduce_ex__&amp;#39;, &amp;#39;__repr__&amp;#39;, &amp;#39;__setattr__&amp;#39;, &amp;#39;__sizeof__&amp;#39;, &amp;#39;__str__&amp;#39;, &amp;#39;__subclasshook__&amp;#39;, &amp;#39;clear&amp;#39;, &amp;#39;f_back&amp;#39;, &amp;#39;f_builtins&amp;#39;, &amp;#39;f_code&amp;#39;, &amp;#39;f_globals&amp;#39;, &amp;#39;f_lasti&amp;#39;, &amp;#39;f_lineno&amp;#39;, &amp;#39;f_locals&amp;#39;, &amp;#39;f_trace&amp;#39;] &amp;gt;&amp;gt;&amp;gt; assert frame.f_back == None &amp;gt;&amp;gt;&amp;gt; &amp;gt;&amp;gt;&amp;gt; dir(frame.</description>
+    </item>
+    
+    <item>
+      <title>unicode到底是个什么鬼</title>
+      <link>https://schecterdamien.github.io/posts/2019/unicode/</link>
+      <pubDate>Thu, 24 Jan 2019 16:01:06 +0000</pubDate>
+      
+      <guid>https://schecterdamien.github.io/posts/2019/unicode/</guid>
+      <description> 编码问题可以说是python中非常让人头疼的一个问题了，看到知乎上一个哥们说：一旦你走上了编程之路，如果你不把编码问题搞清楚，那么它就像幽灵一般纠缠你整个职业生涯，各种灵异事件会接踵而来。只有充分发挥程序员死磕到底的精神你才有可能彻底摆脱编码问题带来的烦恼。 实在不能更同意了。前几天看到一篇文章写的挺不错https://zhuanlan.zhihu.com/p/40834093。网上也有很多类似的文章，一般都会说到python3的str的编码是unicode。同时在另一本知名的书上《effective python》有这样一段：
+把Unicode字符表示为二进制数据（也就是原始8位值）有许多的办法。最常见的编码方式就是UTF-8。但是大家要记住，python3的str实例和python2的unicode实例都没有和特定的二进制编码形式相关联。要把Unicode字符转换成二进制数据，就必须使用encode方法。想要把二进制数据转换成Unicode字符，则必须使用decode方法。
+看到这里我就很分裂了，那python3的str到底是什么编码格式呢？如果没有和特定的二进制编码形式相关联，那str在内存中怎么表示呢？unicode到底是个什么鬼？
+Unicode 说到这里，就得去研究下unicode。
+刚开始没有的unicode的时候，英语国家使用ascii，中国使用gbk，日本使用shift_jis……大家都使用自己的编码协议，大家交流起来就特别麻烦，一不小心就乱码了。假设没有一门可以包容所有语言的编码，同时有n个适用于各国自己语言的编码，那大家需要交流的话就要n*(n-1)种映射协议来转换编码，让大家都能交流，这无疑对互联网来说是场灾难。所以unicode出现了，它对世界上大部分的文字系统进行了整理、编码，使得计算机可以用更为简单的方式来呈现和处理文字。
+大概来说，Unicode编码系统可分为编码方式和实现方式两个层次。重点来了，Unicode的编码方式和实现方式是不同的，编码方式是指的字符集，也就是指定了每个值和字符的映射关系，比如我可以自己制定一个很简单的字符集类似于:{1: &#39;你&#39;, 2: &#39;好&#39;，……，260: &#39;呢&#39;}，这里指定的是值和字母的映射关系，1代表的就是&amp;rsquo;你&amp;rsquo;，2代表的是&amp;rsquo;好&amp;rsquo;，260代表的是&amp;rsquo;呢&amp;rsquo;。根据编码方式我们可以有不同的实现方式。比如如果是用定长编码来实现，要存储260这个中文字符，我们至少需要两个字节，所以我们可以写死用两个字节来存储，尽管对于前面256个字符来说，第一个字节都是0。如果使用变长编码来实现，可以把前面128个汉字用一个字节表示，留出首位当作标识位，其他的汉字用两个字节表示。还有比如两个字节是大端序还是小端序会影响到第一个字节是高位还是第二个字节是高位等等，这些都是不同的实现方式。
+所以Unicode我们通常说的是指的其编码方式，就是映射关系。Unicode的实现方式称为Unicode转换格式（Unicode Transformation Format，简称为UTF）。我们用的比较多的有UTF-8，UTF-16，UTF-32等。所以我们说python3中的str的编码方式是unicode这个说法就有问题了，unicode只是一个字符集，没有约定实现，具体的实现还要看是采用UTF-8还是UTF-16还是别的方式，那到底python中采取的是unicode的哪种实现方式呢？
+真相大白 然而这个问题，在中文网络上几乎没找到相关的答案，看了好多的博客，都只是说python3的str编码是unicode，这句话本身就有问题。最后还是在stackoverflow上找到了答案: What is internal representation of string in Python 3.x 以及 How is unicode represented internally in Python?。
+总结一下，就是python在3.3之前，包括python2，具体的内部unicode采用哪种方式实现其实是编译时的选项。取决于系统的本机字节顺序以及是否选择了UCS2或UCS4。UCS4的话就是采用UTF-32来实现，UCS2的话就采用UTF-16来实现，本机字节顺序决定了是UTF-16 BE还是UTF-16 LE。也就是一旦在编译的时候设置好了，之后python里面unicode的实现都是这种方式。python3.3之后，采用了一种更为灵活的方式来表示，字符串可能是ascii, latin-1, utf-8, utf-16, utf-32等编码形式中的一种，就是说不再是写死一种方式了（这个地方还没完全弄明白，先留个坑），这个主要是pep 393中约定的：PEP 393 &amp;ndash; Flexible String Representation
+参考链接 https://www.cnblogs.com/malecrab/p/5300503.html https://zh.wikipedia.org/wiki/Unicode https://zh.wikipedia.org/wiki/通用字符集#Unicode和ISO_10646的关系 </description>
+    </item>
+    
+    <item>
+      <title>namedtuple第一个参数有什么用？</title>
+      <link>https://schecterdamien.github.io/posts/2018/namedtuple/</link>
+      <pubDate>Wed, 19 Dec 2018 19:36:33 +0000</pubDate>
+      
+      <guid>https://schecterdamien.github.io/posts/2018/namedtuple/</guid>
+      <description>namedtuple是python中一个简单实用的数据结构，但是很不爽的是每次使用的时候都需要给第一个参数指定一个字符串，而这个字符串在实际使用中似乎并没有什么作用。比如
+&amp;gt;&amp;gt;&amp;gt; from collections import namedtuple &amp;gt;&amp;gt;&amp;gt; Student = namedtuple(&amp;#39;StudentTuple&amp;#39;, [&amp;#39;sex&amp;#39;, &amp;#39;name&amp;#39;, &amp;#39;age&amp;#39;]) &amp;gt;&amp;gt;&amp;gt; s = Student(&amp;#39;male&amp;#39;, &amp;#39;callmedad&amp;#39;, 22) &amp;gt;&amp;gt;&amp;gt; s.age 22 我操作的对象都是Student，而不是StudentTuple，那我为什么还要传一个&amp;rsquo;StudentTuple&amp;rsquo;，这个字符串似乎对我没有任何帮助。stackoverflow同样有人提了这个问题：传送门1，传送门2. 看了下回答，然后又看了下namedtuple的源码，总算明白了。 接着上面的代码，我们可以看下Student是个啥。
+&amp;gt;&amp;gt;&amp;gt; import inspect &amp;gt;&amp;gt;&amp;gt; inspect.isclass(Student) True &amp;gt;&amp;gt;&amp;gt; Student &amp;lt;class &amp;#39;__main__.StudentTuple&amp;#39;&amp;gt; &amp;gt;&amp;gt;&amp;gt; Student &amp;lt;class &amp;#39;__main__.StudentTuple&amp;#39;&amp;gt; &amp;gt;&amp;gt;&amp;gt; s.__class__ &amp;lt;class &amp;#39;__main__.StudentTuple&amp;#39;&amp;gt; &amp;gt;&amp;gt;&amp;gt; type(namedtuple) &amp;lt;class &amp;#39;function&amp;#39;&amp;gt; 我们大致知道这几点：1. Student是个类，并且只是一个类的引用，查看s.__class__知道，这个类定义的名字是StudentTuple，就是我们传的第一个参数。2. namedtuple是个方法，但是返回的是一个新的类，也就是说这是一个类的工厂方法。
+既然是一个生成类的工厂方法，那么肯定就需要知道类的名字，所以这就是第一个参数的意义。然后，这一切是怎么实现的呢？
+看下namedtuple的源码，其实非常简单粗暴
+def namedtuple(typename, field_names, *, verbose=False, rename=False, module=None): ... class_definition = _class_template.format( typename = typename, # 第一个参数 field_names = tuple(field_names), # 各种检验后的属性列表 num_fields = len(field_names), arg_list = repr(tuple(field_names)).</description>
+    </item>
+    
+  </channel>
 </rss>

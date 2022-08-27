@@ -2,7 +2,7 @@
 title: 记一次并发问题的排查
 date: 2019-04-24 21:31:41
 tags: ["python"]
-menu: "main"
+menu: "posts"
 ---
 ### 起源 ###
 &nbsp;&nbsp;&nbsp;&nbsp; 事情的起源是这样的，Binding是一张多对多的表，主要有sku_code，settlement_sn，enable这几个字段，但是逻辑上sku_code，settlemen_sn，enable=True的在表中应该是唯一的。因为enable=False可能有多条，所以不能在数据库上加联合唯一的索引，但是代码里面有判断。然后有一天测试发现出现两条记录的sku_code，settlemen_sn相同且enable都为True，然后看代码，创建Binding的代码大致是这样的

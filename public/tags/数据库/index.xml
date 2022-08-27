@@ -1,17 +1,47 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
-	<channel>
-		<title>数据库 on </title>
-		<link>https://schecterdamien.github.io/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/</link>
-		<description>Recent content in 数据库 </description>
-		<generator>Hugo -- gohugo.io</generator>
-		
-  		<language>ch</language>
-		
-		<managingEditor>Page(/tags/数据库) (wujinjing)</managingEditor>
-    	
-  		<lastBuildDate>Thu, 04 Mar 2021 23:35:01 +0000</lastBuildDate>
-		
-		<atom:link href="/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/" rel="self" type="application/rss+xml" />
-		
-	</channel>
+  <channel>
+    <title>数据库 on Firsy</title>
+    <link>https://schecterdamien.github.io/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/</link>
+    <description>Recent content in 数据库 on Firsy</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>ch</language>
+    <lastBuildDate>Thu, 04 Mar 2021 23:35:01 +0000</lastBuildDate><atom:link href="https://schecterdamien.github.io/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>mysql锁总结</title>
+      <link>https://schecterdamien.github.io/posts/2021/mysql-lock/</link>
+      <pubDate>Thu, 04 Mar 2021 23:35:01 +0000</pubDate>
+      
+      <guid>https://schecterdamien.github.io/posts/2021/mysql-lock/</guid>
+      <description>最近做了一次和MySQL（innoDB）锁有关的技术分享，记录一下
+为了能尽量准确简洁的描述innoDB的锁机制，看了好多的文章，由于innoDB中的锁系统确实非常复杂，细节特别多，如有纰漏和谬误，还请联系改正
+innoDB锁简介 innoDb支持多种粒度的锁，按照粒度来分，可分为表锁（LOCK_TABLE）和行锁（LOCK_REC） 一般的锁系统都会有共享锁和排他锁的分类，共享锁也叫读锁，排他锁也叫写锁。加在同一个资源上，写锁会阻塞另外一把写锁或读锁的获取，读锁则允许另外一把读锁的获取，也就是读读之间允许并发，读写或者写写会阻塞，innodb中表锁和行锁都支持共享锁（简写S）和排他锁（简写X）。
+因为innoDB支持多粒度的锁，允许表锁和行锁的并存，为了方便多粒度锁冲突的判断，innoDB中还存在一种名叫意向锁（Intention Locks）的锁。
+除此之外，还有一种特殊的表锁，自增锁，主要用来并发安全的生成自增id，一种特殊的意向锁，插入意向锁，用来防止幻读问题
+表锁 表锁，锁定的粒度是整个表，也分共享锁和排他锁。不同于行锁，表锁MySQL Server层就有实现（所以MyISAM支持表锁，也只支持表锁），innoDb则在存储引擎层面也实现了一遍表锁（后面会介绍具体结构）。
+哪些时候会触发表锁呢？在执行某些ddl时，比如alter table等操作，会对整个表加锁，也可以手动执行锁表语句：LOCK TALBES table_name [READ | WRITE]，READ为共享锁，WRITE为排他锁，手动解锁的语句为：UNLOCK TABLES，会直接释放当前会话持有的所有表锁
+有一些需要注意的地方：
+因为MySQL Server层和InnoDB都实现了表锁，仅当autocommit=0、innodb_table_lock=1（默认设置）时，InnoDB层才能知道MySQL加的表锁，ＭySQL Server才能感知InnoDB加的行锁，这种情况下，InnoDB才能自动识别涉及表级锁的死锁，否则，InnoDB将无法自动检测并处理这种死锁 在用LOCK TALBES显式获取锁后，只能访问加锁的这些表，并且如果加的是共享锁，那么只能执行查询操作，而不能执行更新操作，如果获得的是排他锁，则可以进行更新操作。 开始事务时会自动UNLOCK之前的表锁，COMMIT或ROLLBACK都不能释放用LOCK TABLES加的表级锁。LOCK TALBES时会先隐式提交事务，再锁表，UNLOCK TALBES也会隐式提交事务。所以，事务中需要的表锁必须在事务开头一次性获取，无法再事务中间获取，因为不管是LOCK TALBES还是UNLOCK TALBES都会提交事务 官网上建议的表锁的使用方法：
+SET autocommit=0; LOCK TABLES t1 WRITE, t2 READ, ...; ... do something with tables t1 and t2 here ... COMMIT; UNLOCK TABLES; 实际业务中，没有特殊理由，不建议使用表锁，因为锁的粒度太大了，极大的影响并发
+意向锁 意向锁是一种特殊的表级锁，意向锁是为了让InnoDB多粒度的锁能共存而设计的。取得行的共享锁和排他锁之前需要先取得表的意向共享锁（IS）和意向排他锁（IX），意向共享锁和意向排他锁都是系统自动添加和自动释放的，整个过程无需人工干预。 主要是用来辅助表级和行级锁的冲突判断，因为Innodb支持行级锁，如果没有意向锁，则判断表锁和行锁冲突的时候需要遍历表上所有行锁，有了意向锁，则只要判断表是否存在意向锁就可以知道是否有行锁了。表级别锁的兼容性如下表：
+X IX S IS X Conflict Conflict Conflict Conflict IX Conflict Compatible Conflict Compatible S Conflict Conflict Compatible Compatible IS Conflict Compatible Compatible Compatible 可以看到，意向锁与意向锁兼容，IX、IS自身以及相互都兼容，不互斥，因为意向锁仅表示下一层级加什么类型的锁，不代表当前层加什么类型的锁；IX和表级X、S互斥；IS和表级X锁互斥。其兼容性正好体现了其作用</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL的事务隔离和MVCC</title>
+      <link>https://schecterdamien.github.io/posts/2019/pg-mvcc/</link>
+      <pubDate>Thu, 25 Apr 2019 00:36:43 +0000</pubDate>
+      
+      <guid>https://schecterdamien.github.io/posts/2019/pg-mvcc/</guid>
+      <description>因为之前遇到的并发问题，所以又把pg的事务隔离和mvcc实现温习了一遍，稍微整理，遂有此文。
+数据库并发问题 说到事务隔离，得先说说数据库可能产生的几种并发问题：
+脏读（Dirty Read）：一个事务a读到了事务b更新未提交的数据，b回滚了，a读到的数据就是脏数据 不可重复读（NonRepeatable Read）：事务a多次读取同一个数据，事务b在a多次读取的过程中，对这条数据做出了更改并提交，导致事务a在多次读取结果不一致 幻读（Phantom Read）：事务a在批量更新一个表，事务b这个时候插入了一条不同的记录，导致事务a在改完后发现还有一条记录没有改，就像幻觉一样 不可重复读和幻读很容易混淆，其实幻读是不可重复读的一种特殊情况，只不过不可重复读侧重于修改，幻读侧重于新增或删除，解决不可重复读的问题只需要锁住满足条件的行，解决幻读需要提高事务的隔离级别，但与此同时，事务的隔离级别越高，并发能力也就越低。所以，所以还需要权衡。
+事务隔离级别 为了有效保证并发读取数据的正确性，提出的事务隔离级别：
+未提交读（Read Uncommitted）：允许脏读，也就是可能读取到其他事务中未提交的修改 提交读(Read Committed)：只能读取到其他事务已经提交的数据。PostgreSQL、Oracle等多数数据库默认都是该级别 可重复读(Repeated Read)：可重复读。在同一个事务内的查询都是事务开始时刻一致的，InnoDB默认级别。 串行读(Serializable)：完全串行化的读，每次读都需要获得表级共享锁，读写相互都会阻塞 在SQL标准中，定义了不同隔离级别会出现的并发问题：
+隔离级别 脏读 不可重复读 幻读 未提交读 可能 可能 可能 已提交读 不可能 可能 可能 可重复读 不可能 不可能 可能 串行读 不可能 不可能 不可能 注意，这是ANSI SQL标准中的定义，但是具体到数据库的实现可能不一样，只会更严格。比如Read Uncommitted这种隔离级别，其实在实际使用中是没有意义的，设置这种级别还不如用Nosql，所以在pg 中其实Read Uncommitted和Read Committed是一样的。
+关于Repeated Read，因为在同一个事务内查询到的数据都是在开启事务后第一次查询时候的快照，可知在业务层开启事务后，事务内所有的乐观锁机制都将失效，毕竟都读不到其他事务的提交了，一定会造成写冲突。除此之外，看了不少的讲pg的事务隔离的文章，都是说pg的Repeated Read不会出现幻读&amp;hellip;然后实际上，自测发现并不能完全避免。因为幻读其实分为好多种，在《A Critique of ANSI SQL Isolation Levels》论文就定义了好多种的幻读。可以说，pg的Repeated Read基于其MVCC的实现可以避免一部分，但是是无法完全避免的。 关于Serializable，pg在9.1之前，是没有Repeated Read这个隔离级别，只有Serializable。9.1之后，才把之前的Serializable重命名为Repeated Read，然后加上一个更为严格的Serializable隔离级别。在这两个隔离级别下，如果两个不同事务中同时修改一条记录都会导致其中某个事物写失败，所以在应用层需要有重试机制。 关于两者的不同，应该是说Serializable这种隔离级别可以解决更多的幻读问题，Serializable使用谓词锁（Predicate Lock）来防止这些幻读，意思是如果一个事务T1正在执行一个查询，该查询的的WHERE子句存在一个条件表达式E1，同时这个查询下面还有其他更新或者插入操作，那么另外一个事务T2 就不能插入或删除任何满足E1的数据行。比如之前遇到的并发问题，其实可以简单表达为(伪代码)：
+if not Binding.objects.filter(sku_code=&amp;#39;test&amp;#39;).all(): # 这里只有用all()才能触发pg的谓词锁，first()，exist()都不行 Binding.objects.create(sku_code=&amp;#39;test&amp;#39;) 如果是在Repeated Read下，可能就重复创建两条sku_code=&amp;lsquo;test&amp;rsquo;的Binding了，但是在Serializable里面因为存在读写依赖，并发两条事务中肯定会又一条会失败，会提示&amp;rsquo;could not serialize access due to read/write dependencies among transactions&amp;rsquo;错误</description>
+    </item>
+    
+  </channel>
 </rss>

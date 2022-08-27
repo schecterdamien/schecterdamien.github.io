@@ -1,17 +1,56 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
-	<channel>
-		<title>Tags on </title>
-		<link>https://schecterdamien.github.io/tags/</link>
-		<description>Recent content in Tags </description>
-		<generator>Hugo -- gohugo.io</generator>
-		
-  		<language>ch</language>
-		
-		<managingEditor>Page(/tags) (wujinjing)</managingEditor>
-    	
-  		<lastBuildDate>Thu, 23 Dec 2021 22:35:18 +0000</lastBuildDate>
-		
-		<atom:link href="/tags/" rel="self" type="application/rss+xml" />
-		
-	</channel>
+  <channel>
+    <title>Tags on Firsy</title>
+    <link>https://schecterdamien.github.io/tags/</link>
+    <description>Recent content in Tags on Firsy</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>ch</language>
+    <lastBuildDate>Thu, 23 Dec 2021 22:35:18 +0000</lastBuildDate><atom:link href="https://schecterdamien.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>web</title>
+      <link>https://schecterdamien.github.io/tags/web/</link>
+      <pubDate>Thu, 23 Dec 2021 22:35:18 +0000</pubDate>
+      
+      <guid>https://schecterdamien.github.io/tags/web/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>数据库</title>
+      <link>https://schecterdamien.github.io/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/</link>
+      <pubDate>Thu, 04 Mar 2021 23:35:01 +0000</pubDate>
+      
+      <guid>https://schecterdamien.github.io/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>python</title>
+      <link>https://schecterdamien.github.io/tags/python/</link>
+      <pubDate>Wed, 24 Apr 2019 21:31:41 +0000</pubDate>
+      
+      <guid>https://schecterdamien.github.io/tags/python/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>算法</title>
+      <link>https://schecterdamien.github.io/tags/%E7%AE%97%E6%B3%95/</link>
+      <pubDate>Wed, 17 Apr 2019 23:34:49 +0000</pubDate>
+      
+      <guid>https://schecterdamien.github.io/tags/%E7%AE%97%E6%B3%95/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>杂谈</title>
+      <link>https://schecterdamien.github.io/tags/%E6%9D%82%E8%B0%88/</link>
+      <pubDate>Mon, 19 Nov 2018 00:52:56 +0000</pubDate>
+      
+      <guid>https://schecterdamien.github.io/tags/%E6%9D%82%E8%B0%88/</guid>
+      <description></description>
+    </item>
+    
+  </channel>
 </rss>

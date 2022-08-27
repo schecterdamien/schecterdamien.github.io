@@ -1,290 +1,187 @@
 <!DOCTYPE html>
 <html lang="ch">
   <head>
-    <meta charset="utf-8" />
-<title>namedtuple第一个参数有什么用？</title>
-<meta name="description" 
-      content=""
->
-
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.101.0" />
+  <title> namedtuple第一个参数有什么用？ | Firsy </title>
+  <meta name="description" content="A simple and concise hugo theme.">
+  <link rel="stylesheet" href="https://schecterdamien.github.io/css/simpleness.css">
+  <link rel="canonical" href="https://schecterdamien.github.io/posts/2018/namedtuple/">
+  <link rel="alternate" type="application/rss+xml" href="" title="Firsy">
   
-
-
-
-
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link
-  rel="alternate"
-  type="application/rss+xml"
-  href="https://schecterdamien.github.io/index.xml"
-  title=""
-/>
-<meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="namedtuple第一个参数有什么用？"/>
-<meta name="twitter:description" content="namedtuple是python中一个简单实用的数据结构，但是很不爽的是每次使用的时候都需要给第一个参数指定一个字符串，而这个字符串在实际使用中似乎并没有什么作用。比如
-&gt;&gt;&gt; from collections import namedtuple &gt;&gt;&gt; Student = namedtuple(&#39;StudentTuple&#39;, [&#39;sex&#39;, &#39;name&#39;, &#39;age&#39;]) &gt;&gt;&gt; s = Student(&#39;male&#39;, &#39;callmedad&#39;, 22) &gt;&gt;&gt; s.age 22 我操作的对象都是Student，而不是StudentTuple，那我为什么还要传一个&rsquo;StudentTuple&rsquo;，这个字符串似乎对我没有任何帮助。stackoverflow同样有人提了这个问题：传送门1，传送门2. 看了下回答，然后又看了下namedtuple的源码，总算明白了。 接着上面的代码，我们可以看下Student是个啥。
-&gt;&gt;&gt; import inspect &gt;&gt;&gt; inspect.isclass(Student) True &gt;&gt;&gt; Student &lt;class &#39;__main__.StudentTuple&#39;&gt; &gt;&gt;&gt; Student &lt;class &#39;__main__.StudentTuple&#39;&gt; &gt;&gt;&gt; s.__class__ &lt;class &#39;__main__.StudentTuple&#39;&gt; &gt;&gt;&gt; type(namedtuple) &lt;class &#39;function&#39;&gt; 我们大致知道这几点：1. Student是个类，并且只是一个类的引用，查看s.__class__知道，这个类定义的名字是StudentTuple，就是我们传的第一个参数。2. namedtuple是个方法，但是返回的是一个新的类，也就是说这是一个类的工厂方法。
-既然是一个生成类的工厂方法，那么肯定就需要知道类的名字，所以这就是第一个参数的意义。然后，这一切是怎么实现的呢？
-看下namedtuple的源码，其实非常简单粗暴
-def namedtuple(typename, field_names, *, verbose=False, rename=False, module=None): ... class_definition = _class_template.format( typename = typename, # 第一个参数 field_names = tuple(field_names), # 各种检验后的属性列表 num_fields = len(field_names), arg_list = repr(tuple(field_names))."/>
-
-
-
-<link rel="stylesheet" href="https://schecterdamien.github.io/fontawesome/css/all.min.css" />
-
-
-
-
-<link
-  crossorigin="anonymous"
-  href="/css/styles.min.css"
-  integrity=""
-  rel="preload stylesheet"
-  as="style"
-/>
-
-
-
-
-<link
-  id="dark-mode-theme"
-  crossorigin="anonymous"
-  href="/css/dark.min.css"
-  integrity=""
-  rel="preload stylesheet"
-  as="style"
-/>
-
-
-<script>
-  var darkTheme = document.getElementById('dark-mode-theme')
-  var storedTheme = localStorage.getItem('dark-mode-storage')
-
-  if (storedTheme === 'dark') {
-    darkTheme.disabled = false
-  } else if (storedTheme === 'light') {
-    darkTheme.disabled = true
-  }
-</script>
-
-
-<script defer crossorigin="anonymous" src="/js/theme.js" integrity=""></script>
-
-
-<script defer crossorigin="anonymous" src="/js/instantpage.min.js" integrity=""></script><meta name="generator" content="Hugo 0.101.0" />
-  </head>
-  <body>
-    
   
-
-
-
-
-  <header>
-    <nav class="navbar">
-  <div class="nav">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" rel="stylesheet">
+  
+</head>
+<body class="container">
+  <nav class="navigation">
+  <div class="nav-left">
     
-      <a href="https://schecterdamien.github.io/" class="nav-logo">
-        <img
-          src="https://schecterdamien.github.io/images/icon.png"
-          width="50"
-          height="50"
-          alt="Logo"
-        />
-      </a>
+    <div class="nav-item nav-title">
+      <a href="https://schecterdamien.github.io/"> Firsy</a>
+    </div>
+    <div class="nav-item nav-menu">
+      
+      <a href="/"> Home</a>
+      
+      <a href="/about/"> About</a>
+      
+    </div>
+  </div>
+  <div class="nav-item nav-right fontawesome">
     
-
-    <ul class="nav-links">
-      
-        
-          <li>
-            <a href="/about/" id="About"
-              ><em class="fas fa-user fa-lg"></em
-            ></a>
-          </li>
-          
-      
-        
-          <li>
-            <a href="/tags" id="Tags"
-              ><em class="fas fa-tag fa-lg"></em
-            ></a>
-          </li>
-          
-      
-        
-          <li>
-            <a href="/search" id="Search"
-              ><em class="fas fa-search fa-lg"></em
-            ></a>
-          </li>
-          
-      
-        
-          <li>
-            <a href="/archives" id="Archives"
-              ><em class="fas fa-archive fa-lg"></em
-            ></a>
-          </li>
-          
-      
-    </ul>
+    
+    <a href="https://schecterdamien.github.io/" target="_blank">
+      <i title="GitHub" class="fab fa-github"></i>
+    </a>
+    
+    
+    <a href="https://schecterdamien.github.io/index.xml" target="_blank">
+      <i title="RSS" class="fas fa-rss"></i>
+    </a>
+    
   </div>
 </nav>
 
-    <div class="intro-header">
-      <div class="container">
-        <div class="posts-heading">
-          
-            <h1>
-              namedtuple第一个参数有什么用？
-            </h1>
-          
-          
-        </div>
-      </div>
+  
+<article class="post">
+  <header class="post-header">
+    <h1 style="text-align: center;" >namedtuple第一个参数有什么用？</h1>
+    <div class="post-metadata">
+    
+      <time datetime="2018-12-19T19:36:33Z">December 19, 2018</time> &nbsp; 
+    
+    
+    
+    
+    
+      <i class="far fa-clock"></i>
+      
+      
+      
+      
+        3 min
+      
+      38 s
+      &nbsp;
+    
+    
     </div>
   </header>
+
   
 
-    
-  <div class="container" role="main">
-    <article class="article" class="blog-post">
-      
-  <p>    namedtuple是python中一个简单实用的数据结构，但是很不爽的是每次使用的时候都需要给第一个参数指定一个字符串，而这个字符串在实际使用中似乎并没有什么作用。比如</p>
-<pre tabindex="0"><code>&gt;&gt;&gt; from collections import namedtuple
-&gt;&gt;&gt; Student = namedtuple(&#39;StudentTuple&#39;, [&#39;sex&#39;, &#39;name&#39;, &#39;age&#39;])
-&gt;&gt;&gt; s = Student(&#39;male&#39;, &#39;callmedad&#39;, 22)
-&gt;&gt;&gt; s.age
-22
-</code></pre><p>    我操作的对象都是Student，而不是StudentTuple，那我为什么还要传一个&rsquo;StudentTuple&rsquo;，这个字符串似乎对我没有任何帮助。stackoverflow同样有人提了这个问题：<a href="https://stackoverflow.com/questions/30526115/whats-the-first-argument-of-namedtuple-used-for">传送门1</a>，<a href="https://stackoverflow.com/questions/30535678/why-do-you-have-to-provide-the-typename-as-the-first-parameter-when-creating-a-n">传送门2</a>. 看了下回答，然后又看了下namedtuple的源码，总算明白了。
+  <div class="post-text">
+    <p>    namedtuple是python中一个简单实用的数据结构，但是很不爽的是每次使用的时候都需要给第一个参数指定一个字符串，而这个字符串在实际使用中似乎并没有什么作用。比如</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>&gt;&gt;&gt; from collections import namedtuple
+</span></span><span style="display:flex;"><span>&gt;&gt;&gt; Student = namedtuple(&#39;StudentTuple&#39;, [&#39;sex&#39;, &#39;name&#39;, &#39;age&#39;])
+</span></span><span style="display:flex;"><span>&gt;&gt;&gt; s = Student(&#39;male&#39;, &#39;callmedad&#39;, 22)
+</span></span><span style="display:flex;"><span>&gt;&gt;&gt; s.age
+</span></span><span style="display:flex;"><span>22
+</span></span></code></pre></div><p>    我操作的对象都是Student，而不是StudentTuple，那我为什么还要传一个&rsquo;StudentTuple&rsquo;，这个字符串似乎对我没有任何帮助。stackoverflow同样有人提了这个问题：<a href="https://stackoverflow.com/questions/30526115/whats-the-first-argument-of-namedtuple-used-for">传送门1</a>，<a href="https://stackoverflow.com/questions/30535678/why-do-you-have-to-provide-the-typename-as-the-first-parameter-when-creating-a-n">传送门2</a>. 看了下回答，然后又看了下namedtuple的源码，总算明白了。
     接着上面的代码，我们可以看下Student是个啥。</p>
-<pre tabindex="0"><code>&gt;&gt;&gt; import inspect
-&gt;&gt;&gt; inspect.isclass(Student)
-True
-&gt;&gt;&gt; Student
-&lt;class &#39;__main__.StudentTuple&#39;&gt;
-&gt;&gt;&gt; Student
-&lt;class &#39;__main__.StudentTuple&#39;&gt;
-&gt;&gt;&gt; s.__class__
-&lt;class &#39;__main__.StudentTuple&#39;&gt;
-&gt;&gt;&gt; type(namedtuple)
-&lt;class &#39;function&#39;&gt;
-</code></pre><p>    我们大致知道这几点：1. Student是个类，并且只是一个类的引用，查看s.__class__知道，这个类定义的名字是StudentTuple，就是我们传的第一个参数。2. namedtuple是个方法，但是返回的是一个新的类，也就是说这是一个类的工厂方法。<br>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>&gt;&gt;&gt; import inspect
+</span></span><span style="display:flex;"><span>&gt;&gt;&gt; inspect.isclass(Student)
+</span></span><span style="display:flex;"><span>True
+</span></span><span style="display:flex;"><span>&gt;&gt;&gt; Student
+</span></span><span style="display:flex;"><span>&lt;class &#39;__main__.StudentTuple&#39;&gt;
+</span></span><span style="display:flex;"><span>&gt;&gt;&gt; Student
+</span></span><span style="display:flex;"><span>&lt;class &#39;__main__.StudentTuple&#39;&gt;
+</span></span><span style="display:flex;"><span>&gt;&gt;&gt; s.__class__
+</span></span><span style="display:flex;"><span>&lt;class &#39;__main__.StudentTuple&#39;&gt;
+</span></span><span style="display:flex;"><span>&gt;&gt;&gt; type(namedtuple)
+</span></span><span style="display:flex;"><span>&lt;class &#39;function&#39;&gt;
+</span></span></code></pre></div><p>    我们大致知道这几点：1. Student是个类，并且只是一个类的引用，查看s.__class__知道，这个类定义的名字是StudentTuple，就是我们传的第一个参数。2. namedtuple是个方法，但是返回的是一个新的类，也就是说这是一个类的工厂方法。<br>
     既然是一个生成类的工厂方法，那么肯定就需要知道类的名字，所以这就是第一个参数的意义。然后，这一切是怎么实现的呢？<br>
     看下namedtuple的源码，其实非常简单粗暴</p>
-<pre tabindex="0"><code>def namedtuple(typename, field_names, *, verbose=False, rename=False, module=None):
-	...
-	
-	class_definition = _class_template.format(
-        typename = typename,  # 第一个参数
-        field_names = tuple(field_names),  # 各种检验后的属性列表
-        num_fields = len(field_names), 
-        arg_list = repr(tuple(field_names)).replace(&#34;&#39;&#34;, &#34;&#34;)[1:-1],
-        repr_fmt = &#39;, &#39;.join(_repr_template.format(name=name)
-                             for name in field_names),
-        field_defs = &#39;\n&#39;.join(_field_template.format(index=index, name=name)
-                               for index, name in enumerate(field_names))
-    )
-   namespace = dict(__name__=&#39;namedtuple_%s&#39; % typename)
-   exec(class_definition, namespace)
-   result = namespace[typename]
-   result._source = class_definition
-   ...
-</code></pre><p>    核心代码就这几行，主要思路就是填充一个字符串的类的模版，然后动态执行生成一个类。 _class_template大致长这个样(简化后)：</p>
-<pre tabindex="0"><code>_class_template = &#34;&#34;&#34;\
-from builtins import property as _property, tuple as _tuple
-from operator import itemgetter as _itemgetter
-from collections import OrderedDict
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-zed" data-lang="zed"><span style="display:flex;"><span>def namedtuple(typename, field_names, <span style="color:#f92672">*</span>, verbose<span style="color:#f92672">=</span>False, rename<span style="color:#f92672">=</span>False, module<span style="color:#f92672">=</span>None)<span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>	...
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	class_definition <span style="color:#f92672">=</span> _class_template.format(
+</span></span><span style="display:flex;"><span>        typename <span style="color:#f92672">=</span> typename,  <span style="color:#960050;background-color:#1e0010">#</span> <span style="color:#960050;background-color:#1e0010">第一个参数</span>
+</span></span><span style="display:flex;"><span>        field_names <span style="color:#f92672">=</span> tuple(field_names),  <span style="color:#960050;background-color:#1e0010">#</span> <span style="color:#960050;background-color:#1e0010">各种检验后的属性列表</span>
+</span></span><span style="display:flex;"><span>        num_fields <span style="color:#f92672">=</span> len(field_names), 
+</span></span><span style="display:flex;"><span>        arg_list <span style="color:#f92672">=</span> repr(tuple(field_names)).replace(<span style="color:#960050;background-color:#1e0010">&#34;&#39;&#34;</span>, <span style="color:#960050;background-color:#1e0010">&#34;&#34;</span>)[<span style="color:#960050;background-color:#1e0010">1</span><span style="color:#f92672">:-</span><span style="color:#960050;background-color:#1e0010">1</span>],
+</span></span><span style="display:flex;"><span>        repr_fmt <span style="color:#f92672">=</span> <span style="color:#960050;background-color:#1e0010">&#39;</span>, <span style="color:#960050;background-color:#1e0010">&#39;</span>.join(_repr_template.format(name<span style="color:#f92672">=</span>name)
+</span></span><span style="display:flex;"><span>                             for name in field_names),
+</span></span><span style="display:flex;"><span>        field_defs <span style="color:#f92672">=</span> <span style="color:#960050;background-color:#1e0010">&#39;\</span>n<span style="color:#960050;background-color:#1e0010">&#39;</span>.join(_field_template.format(index<span style="color:#f92672">=</span>index, name<span style="color:#f92672">=</span>name)
+</span></span><span style="display:flex;"><span>                               for index, name in enumerate(field_names))
+</span></span><span style="display:flex;"><span>    )
+</span></span><span style="display:flex;"><span>   namespace <span style="color:#f92672">=</span> dict(__name__<span style="color:#f92672">=</span><span style="color:#960050;background-color:#1e0010">&#39;</span>namedtuple_<span style="color:#f92672">%</span>s<span style="color:#960050;background-color:#1e0010">&#39;</span> <span style="color:#f92672">%</span> typename)
+</span></span><span style="display:flex;"><span>   exec(class_definition, namespace)
+</span></span><span style="display:flex;"><span>   result <span style="color:#f92672">=</span> namespace[typename]
+</span></span><span style="display:flex;"><span>   result._source <span style="color:#f92672">=</span> class_definition
+</span></span><span style="display:flex;"><span>   ...
+</span></span></code></pre></div><p>    核心代码就这几行，主要思路就是填充一个字符串的类的模版，然后动态执行生成一个类。 _class_template大致长这个样(简化后)：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>_class_template = &#34;&#34;&#34;\
+</span></span><span style="display:flex;"><span>from builtins import property as _property, tuple as _tuple
+</span></span><span style="display:flex;"><span>from operator import itemgetter as _itemgetter
+</span></span><span style="display:flex;"><span>from collections import OrderedDict
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>class {typename}(tuple):
+</span></span><span style="display:flex;"><span>    &#39;{typename}({arg_list})&#39;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    __slots__ = ()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    _fields = {field_names!r}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    def __new__(_cls, {arg_list}):
+</span></span><span style="display:flex;"><span>        &#39;Create new instance of {typename}({arg_list})&#39;
+</span></span><span style="display:flex;"><span>        return _tuple.__new__(_cls, ({arg_list}))
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>       def __repr__(self):
+</span></span><span style="display:flex;"><span>        &#39;Return a nicely formatted representation string&#39;
+</span></span><span style="display:flex;"><span>        return self.__class__.__name__ + &#39;({repr_fmt})&#39; % self
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    ....
+</span></span><span style="display:flex;"><span>   
+</span></span><span style="display:flex;"><span>{field_defs}
+</span></span><span style="display:flex;"><span>&#34;&#34;&#34;
+</span></span></code></pre></div><p>    有人说这种方式很&quot;dirty&quot;，因为是用eval来动态执行的，但是这种方法确实是很简单高效，除了这种方式，其实也可以通过type和元类来动态生成一个类，有空再补上</p>
 
-class {typename}(tuple):
-    &#39;{typename}({arg_list})&#39;
-
-    __slots__ = ()
-
-    _fields = {field_names!r}
-
-    def __new__(_cls, {arg_list}):
-        &#39;Create new instance of {typename}({arg_list})&#39;
-        return _tuple.__new__(_cls, ({arg_list}))
-
-       def __repr__(self):
-        &#39;Return a nicely formatted representation string&#39;
-        return self.__class__.__name__ + &#39;({repr_fmt})&#39; % self
-
-    ....
-   
-{field_defs}
-&#34;&#34;&#34;
-</code></pre><p>    有人说这种方式很&quot;dirty&quot;，因为是用eval来动态执行的，但是这种方法确实是很简单高效，除了这种方式，其实也可以通过type和元类来动态生成一个类，有空再补上</p>
-
-
-
-
-      
-        <div class="blog-tags">
-          
-            <a
-              href="https://schecterdamien.github.io/tags/python/"
-              >python</a
-            >&nbsp;
-          
-        </div>
-      
-
-      
-        <ul class="bottomnav"><li class="previous"><a href="/posts/2019/unicode/"
-          ><span>&lt;&lt;&nbsp;</span>unicode到底是个什么鬼</a
-        ></li><li class="next"><a href="/posts/2018/about-absurd/"
-          >关于语言的杂想<span>&nbsp;>></span></a
-        ></li></ul>
-
-      
-    </article>
-    
-    
-      
-
-    
   </div>
 
-    <footer>
-  
+  <footer class="post-footer">
+    
 
-<div class="social-icons">
-  
     
-    
+    <div class="post-tags">
+      <i class="fas fa-tags"></i>
       
-      <a href="link%20to%20social%20media" name="name of social media">
-        <em class="A icon from https://fontawesome.com/"></em>
-      </a>
+        <a href="/tags/python">python</a>
+        &nbsp;
+      
+    </div>
     
-  
 
+    
+    
+  </footer>
   
+  <div class="comments">
+  <div class="comments">
+
+
+
 </div>
-
-
-  
-  <div class="container">
-    <p class="credits copyright">
-      <a href="https://schecterdamien.github.io/about">wujinjing</a>
-      &nbsp;&copy;
-      2021
-      
-      &nbsp;&ndash;&nbsp;
-      <em class="fas fa-moon" id="dark-mode-toggle"></em>
-    </p>
-
-    <p class="credits theme-by">
-       <a href="https://gohugo.io">Hugo</a>&nbsp;
-      
-      <a href="https://github.com/matsuyoshi30/harbor">Harbor</a>
-    </p>
   </div>
-</footer>
+</article>
 
-  </body>
+  <div class="foot">
+  
+  &copy; 2019 - 2022 &#183;
+  <a href="/"> Firsy </a> &#183;
+  Theme <a href="https://github.com/RainerChiang/simpleness">Simpleness</a> Powered by <a href="https://gohugo.io/">Hugo</a> &#183;
+  <a href="#"><i class="fas fa-chevron-up"></i></a>
+</div>
+</body>
+  <script src="/js/lazyload.min.js"></script>
+<script>
+  var lazyImage = new LazyLoad({container: document.getElementById('article')});
+</script>
+
+
+
+
 </html>

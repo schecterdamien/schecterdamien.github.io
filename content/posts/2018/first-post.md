@@ -5,7 +5,7 @@ title: 我的第一篇博客
 description: "" 
 tags: [ "杂谈" ] 
 date: 2018-09-19 17:25:19
-menu: "main" 
+menu: "posts" 
 ---
 
 

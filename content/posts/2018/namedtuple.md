@@ -2,7 +2,7 @@
 title: namedtuple第一个参数有什么用？
 date: 2018-12-19 19:36:33
 tags: ["python"]
-menu: "main" 
+menu: "posts" 
 ---
 
 &nbsp;&nbsp;&nbsp;&nbsp;namedtuple是python中一个简单实用的数据结构，但是很不爽的是每次使用的时候都需要给第一个参数指定一个字符串，而这个字符串在实际使用中似乎并没有什么作用。比如

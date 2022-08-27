@@ -2,7 +2,7 @@
 title: PostgreSQL的事务隔离和MVCC
 date: 2019-04-25 00:36:43
 tags: ["数据库"]
-menu: "main"
+menu: "posts"
 ---
 &nbsp;&nbsp;&nbsp;&nbsp; 因为之前遇到的并发问题，所以又把pg的事务隔离和mvcc实现温习了一遍，稍微整理，遂有此文。   
 

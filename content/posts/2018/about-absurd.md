@@ -3,7 +3,7 @@ title: 关于语言的杂想
 description: ""
 date: 2018-11-19 00:52:56
 tags: ["杂谈"]
-menu: "main" 
+menu: "posts" 
 ---
 
 &nbsp;&nbsp;&nbsp;&nbsp;最近在看西西弗神话，有一些感想。  

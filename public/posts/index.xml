@@ -1,21 +1,12 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Firsy</title>
-    <link>https://schecterdamien.github.io/</link>
-    <description>Recent content on Firsy</description>
+    <title>Posts on Firsy</title>
+    <link>https://schecterdamien.github.io/posts/</link>
+    <description>Recent content in Posts on Firsy</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>ch</language>
-    <lastBuildDate>Thu, 23 Dec 2021 22:35:18 +0000</lastBuildDate><atom:link href="https://schecterdamien.github.io/index.xml" rel="self" type="application/rss+xml" />
-    <item>
-      <title>About</title>
-      <link>https://schecterdamien.github.io/about/</link>
-      <pubDate>Tue, 23 Aug 2022 22:50:36 +0800</pubDate>
-      
-      <guid>https://schecterdamien.github.io/about/</guid>
-      <description>联系方式：schecterfirst@126.com</description>
-    </item>
-    
+    <lastBuildDate>Thu, 23 Dec 2021 22:35:18 +0000</lastBuildDate><atom:link href="https://schecterdamien.github.io/posts/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>HTTP/2 抓包遇到的坑</title>
       <link>https://schecterdamien.github.io/posts/2021/http2-wireshark/</link>
@@ -214,24 +205,6 @@ def namedtuple(typename, field_names, *, verbose=False, rename=False, module=Non
 为什么要写博客 为什么要写博客，因为很多知识需要沉淀下来，需要“持久化”，人的大脑是快，就像内存，但是容量有限，很多知识不及时记下来的话，就会丢失，那其实学了和没学一样，对自身技术的进步不利。另一方面，想法也是一样，想法不沉淀下来，一闪而过，其实也相当于没出现，写下来也有助于思考，写出来的东西永远都是思考过一遍的，自我加工的。更重要的是，如果不经常写，那这种写的能力就会退化，到了最后内心澎湃万千，下笔或出口都平平淡淡，甚至会错位。那，其实对我来说，重要是要写东西，而不是使劲折腾怎么搭建博客，当然博客漂亮对我来说也重要，别人看着舒服，我自己写着也开心，但是现在在这上面浪费了太多的时间，以至最终什么都没写，实在是本末倒置。
 方法论 做事情，方法论很重要，我需要的是尽快搭建起一个博客可以写东西，但是上面的方案里面，vue以及页面设计我完全不熟，在这上面卡的时间是最多的。仔细想，我其实是在搭博客的过程中掺杂了很多其他的期望，比如能借此学习到很多新的技术，但是没有仔细思考可能付出的成本，在构想方案的时候我并没有意识到这点，于是无形中提高了门槛，最终又没有一个得到适当的正反馈，导致一再拖延（缺少正反馈是所有拖延的主要原因），所以这个做事情的方法论是有问题的，我应该是先用自己熟悉的技术，自己掌握的住的来快速实现一版，迅速看到效果，得到一个正反馈，然后再反复迭代优化。而且搭建博客和学习新技术其实是两件事，但是我却当成了一件事来做。当然，如果能hold住，那两者可以兼得，这也源于自己没有正确的评估成本。
 坚持 一直觉得时间的力量是很强大的，能让渺小变得伟大。一件很小的事情能够坚持做很久（比如几十年如一日的每天坚持跑步）那比在短时间内完成让人惊讶的事情（比如骑行西藏、突击熬夜复习得满分）难度更大，更显的伟大。其实这不是我第一个博客，之前还有个博客，最后死于没有坚持。我知道这很难，所以我不打算定个计划说每周一定要更新几篇，也许我会几周不写，也可能感觉来了一天写几篇，我并没有赋予博客其他的意义和目的性，也不想达成一个每天都坚持写博客的伟大成就，不过放在更广的时间维度上来看，这事我一直在坚持做，写的也是我想写的，最后也没法放弃，或许会让我觉得自己很厉害吧，哈哈。</description>
-    </item>
-    
-    <item>
-      <title>Archive page</title>
-      <link>https://schecterdamien.github.io/archives/</link>
-      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
-      <guid>https://schecterdamien.github.io/archives/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>Search</title>
-      <link>https://schecterdamien.github.io/search/</link>
-      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
-      <guid>https://schecterdamien.github.io/search/</guid>
-      <description></description>
     </item>
     
   </channel>

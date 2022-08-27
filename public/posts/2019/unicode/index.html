@@ -1,162 +1,79 @@
 <!DOCTYPE html>
 <html lang="ch">
   <head>
-    <meta charset="utf-8" />
-<title>unicode到底是个什么鬼</title>
-<meta name="description" 
-      content=""
->
-
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Hugo 0.101.0" />
+  <title> unicode到底是个什么鬼 | Firsy </title>
+  <meta name="description" content="A simple and concise hugo theme.">
+  <link rel="stylesheet" href="https://schecterdamien.github.io/css/simpleness.css">
+  <link rel="canonical" href="https://schecterdamien.github.io/posts/2019/unicode/">
+  <link rel="alternate" type="application/rss+xml" href="" title="Firsy">
   
-
-
-
-
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link
-  rel="alternate"
-  type="application/rss+xml"
-  href="https://schecterdamien.github.io/index.xml"
-  title=""
-/>
-<meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="unicode到底是个什么鬼"/>
-<meta name="twitter:description" content=" 编码问题可以说是python中非常让人头疼的一个问题了，看到知乎上一个哥们说：一旦你走上了编程之路，如果你不把编码问题搞清楚，那么它就像幽灵一般纠缠你整个职业生涯，各种灵异事件会接踵而来。只有充分发挥程序员死磕到底的精神你才有可能彻底摆脱编码问题带来的烦恼。 实在不能更同意了。前几天看到一篇文章写的挺不错https://zhuanlan.zhihu.com/p/40834093。网上也有很多类似的文章，一般都会说到python3的str的编码是unicode。同时在另一本知名的书上《effective python》有这样一段：
-把Unicode字符表示为二进制数据（也就是原始8位值）有许多的办法。最常见的编码方式就是UTF-8。但是大家要记住，python3的str实例和python2的unicode实例都没有和特定的二进制编码形式相关联。要把Unicode字符转换成二进制数据，就必须使用encode方法。想要把二进制数据转换成Unicode字符，则必须使用decode方法。
-看到这里我就很分裂了，那python3的str到底是什么编码格式呢？如果没有和特定的二进制编码形式相关联，那str在内存中怎么表示呢？unicode到底是个什么鬼？
-Unicode 说到这里，就得去研究下unicode。
-刚开始没有的unicode的时候，英语国家使用ascii，中国使用gbk，日本使用shift_jis……大家都使用自己的编码协议，大家交流起来就特别麻烦，一不小心就乱码了。假设没有一门可以包容所有语言的编码，同时有n个适用于各国自己语言的编码，那大家需要交流的话就要n*(n-1)种映射协议来转换编码，让大家都能交流，这无疑对互联网来说是场灾难。所以unicode出现了，它对世界上大部分的文字系统进行了整理、编码，使得计算机可以用更为简单的方式来呈现和处理文字。
-大概来说，Unicode编码系统可分为编码方式和实现方式两个层次。重点来了，Unicode的编码方式和实现方式是不同的，编码方式是指的字符集，也就是指定了每个值和字符的映射关系，比如我可以自己制定一个很简单的字符集类似于:{1: &#39;你&#39;, 2: &#39;好&#39;，……，260: &#39;呢&#39;}，这里指定的是值和字母的映射关系，1代表的就是&rsquo;你&rsquo;，2代表的是&rsquo;好&rsquo;，260代表的是&rsquo;呢&rsquo;。根据编码方式我们可以有不同的实现方式。比如如果是用定长编码来实现，要存储260这个中文字符，我们至少需要两个字节，所以我们可以写死用两个字节来存储，尽管对于前面256个字符来说，第一个字节都是0。如果使用变长编码来实现，可以把前面128个汉字用一个字节表示，留出首位当作标识位，其他的汉字用两个字节表示。还有比如两个字节是大端序还是小端序会影响到第一个字节是高位还是第二个字节是高位等等，这些都是不同的实现方式。
-所以Unicode我们通常说的是指的其编码方式，就是映射关系。Unicode的实现方式称为Unicode转换格式（Unicode Transformation Format，简称为UTF）。我们用的比较多的有UTF-8，UTF-16，UTF-32等。所以我们说python3中的str的编码方式是unicode这个说法就有问题了，unicode只是一个字符集，没有约定实现，具体的实现还要看是采用UTF-8还是UTF-16还是别的方式，那到底python中采取的是unicode的哪种实现方式呢？
-真相大白 然而这个问题，在中文网络上几乎没找到相关的答案，看了好多的博客，都只是说python3的str编码是unicode，这句话本身就有问题。最后还是在stackoverflow上找到了答案: What is internal representation of string in Python 3.x 以及 How is unicode represented internally in Python?。
-总结一下，就是python在3.3之前，包括python2，具体的内部unicode采用哪种方式实现其实是编译时的选项。取决于系统的本机字节顺序以及是否选择了UCS2或UCS4。UCS4的话就是采用UTF-32来实现，UCS2的话就采用UTF-16来实现，本机字节顺序决定了是UTF-16 BE还是UTF-16 LE。也就是一旦在编译的时候设置好了，之后python里面unicode的实现都是这种方式。python3.3之后，采用了一种更为灵活的方式来表示，字符串可能是ascii, latin-1, utf-8, utf-16, utf-32等编码形式中的一种，就是说不再是写死一种方式了（这个地方还没完全弄明白，先留个坑），这个主要是pep 393中约定的：PEP 393 &ndash; Flexible String Representation
-参考链接 https://www.cnblogs.com/malecrab/p/5300503.html https://zh.wikipedia.org/wiki/Unicode https://zh.wikipedia.org/wiki/通用字符集#Unicode和ISO_10646的关系 "/>
-
-
-
-<link rel="stylesheet" href="https://schecterdamien.github.io/fontawesome/css/all.min.css" />
-
-
-
-
-<link
-  crossorigin="anonymous"
-  href="/css/styles.min.css"
-  integrity=""
-  rel="preload stylesheet"
-  as="style"
-/>
-
-
-
-
-<link
-  id="dark-mode-theme"
-  crossorigin="anonymous"
-  href="/css/dark.min.css"
-  integrity=""
-  rel="preload stylesheet"
-  as="style"
-/>
-
-
-<script>
-  var darkTheme = document.getElementById('dark-mode-theme')
-  var storedTheme = localStorage.getItem('dark-mode-storage')
-
-  if (storedTheme === 'dark') {
-    darkTheme.disabled = false
-  } else if (storedTheme === 'light') {
-    darkTheme.disabled = true
-  }
-</script>
-
-
-<script defer crossorigin="anonymous" src="/js/theme.js" integrity=""></script>
-
-
-<script defer crossorigin="anonymous" src="/js/instantpage.min.js" integrity=""></script><meta name="generator" content="Hugo 0.101.0" />
-  </head>
-  <body>
-    
   
-
-
-
-
-  <header>
-    <nav class="navbar">
-  <div class="nav">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" rel="stylesheet">
+  
+</head>
+<body class="container">
+  <nav class="navigation">
+  <div class="nav-left">
     
-      <a href="https://schecterdamien.github.io/" class="nav-logo">
-        <img
-          src="https://schecterdamien.github.io/images/icon.png"
-          width="50"
-          height="50"
-          alt="Logo"
-        />
-      </a>
+    <div class="nav-item nav-title">
+      <a href="https://schecterdamien.github.io/"> Firsy</a>
+    </div>
+    <div class="nav-item nav-menu">
+      
+      <a href="/"> Home</a>
+      
+      <a href="/about/"> About</a>
+      
+    </div>
+  </div>
+  <div class="nav-item nav-right fontawesome">
     
-
-    <ul class="nav-links">
-      
-        
-          <li>
-            <a href="/about/" id="About"
-              ><em class="fas fa-user fa-lg"></em
-            ></a>
-          </li>
-          
-      
-        
-          <li>
-            <a href="/tags" id="Tags"
-              ><em class="fas fa-tag fa-lg"></em
-            ></a>
-          </li>
-          
-      
-        
-          <li>
-            <a href="/search" id="Search"
-              ><em class="fas fa-search fa-lg"></em
-            ></a>
-          </li>
-          
-      
-        
-          <li>
-            <a href="/archives" id="Archives"
-              ><em class="fas fa-archive fa-lg"></em
-            ></a>
-          </li>
-          
-      
-    </ul>
+    
+    <a href="https://schecterdamien.github.io/" target="_blank">
+      <i title="GitHub" class="fab fa-github"></i>
+    </a>
+    
+    
+    <a href="https://schecterdamien.github.io/index.xml" target="_blank">
+      <i title="RSS" class="fas fa-rss"></i>
+    </a>
+    
   </div>
 </nav>
 
-    <div class="intro-header">
-      <div class="container">
-        <div class="posts-heading">
-          
-            <h1>
-              unicode到底是个什么鬼
-            </h1>
-          
-          
-        </div>
-      </div>
+  
+<article class="post">
+  <header class="post-header">
+    <h1 style="text-align: center;" >unicode到底是个什么鬼</h1>
+    <div class="post-metadata">
+    
+      <time datetime="2019-01-24T16:01:06Z">January 24, 2019</time> &nbsp; 
+    
+    
+    
+    
+    
+      <i class="far fa-clock"></i>
+      
+      
+      
+      
+        8 min
+      
+      46 s
+      &nbsp;
+    
+    
     </div>
   </header>
+
   
 
-    
-  <div class="container" role="main">
-    <article class="article" class="blog-post">
-      
-  <p>    编码问题可以说是python中非常让人头疼的一个问题了，看到知乎上一个哥们说：一旦你走上了编程之路，如果你不把编码问题搞清楚，那么它就像幽灵一般纠缠你整个职业生涯，各种灵异事件会接踵而来。只有充分发挥程序员死磕到底的精神你才有可能彻底摆脱编码问题带来的烦恼。  <br>
+  <div class="post-text">
+    <p>    编码问题可以说是python中非常让人头疼的一个问题了，看到知乎上一个哥们说：一旦你走上了编程之路，如果你不把编码问题搞清楚，那么它就像幽灵一般纠缠你整个职业生涯，各种灵异事件会接踵而来。只有充分发挥程序员死磕到底的精神你才有可能彻底摆脱编码问题带来的烦恼。  <br>
     实在不能更同意了。前几天看到一篇文章写的挺不错<!-- raw HTML omitted --><a href="https://zhuanlan.zhihu.com/p/40834093">https://zhuanlan.zhihu.com/p/40834093</a><!-- raw HTML omitted -->。网上也有很多类似的文章，一般都会说到python3的str的编码是unicode。同时在另一本知名的书上《effective python》有这样一段：</p>
 <blockquote>
 <blockquote>
@@ -181,72 +98,57 @@ Unicode 说到这里，就得去研究下unicode。
 <li><!-- raw HTML omitted --><a href="https://zh.wikipedia.org/wiki/">https://zh.wikipedia.org/wiki/</a>通用字符集#Unicode和ISO_10646的关系<!-- raw HTML omitted --></li>
 </ul>
 
-
-
-
-      
-        <div class="blog-tags">
-          
-            <a
-              href="https://schecterdamien.github.io/tags/python/"
-              >python</a
-            >&nbsp;
-          
-        </div>
-      
-
-      
-        <ul class="bottomnav"><li class="previous"><a href="/posts/2019/python-debug/"
-          ><span>&lt;&lt;&nbsp;</span>怎么高效的调试python程序(1)</a
-        ></li><li class="next"><a href="/posts/2018/namedtuple/"
-          >namedtuple第一个参数有什么用？<span>&nbsp;>></span></a
-        ></li></ul>
-
-      
-    </article>
-    
-    
-      
-
-    
   </div>
 
-    <footer>
-  
+  <footer class="post-footer">
+    
 
-<div class="social-icons">
-  
     
-    
+    <div class="post-tags">
+      <i class="fas fa-tags"></i>
       
-      <a href="link%20to%20social%20media" name="name of social media">
-        <em class="A icon from https://fontawesome.com/"></em>
-      </a>
+        <a href="/tags/python">python</a>
+        &nbsp;
+      
+    </div>
     
-  
 
+    
+    
+    <div class="related-posts">
+      <h4>Related Posts</h4>
+      
+      <i class="fas fa-paperclip"></i>
+      <a href="/posts/2018/namedtuple/">namedtuple第一个参数有什么用？</a>
+      <br>
+      
+    </div>
+    
+  </footer>
   
+  <div class="comments">
+  <div class="comments">
+
+
+
 </div>
-
-
-  
-  <div class="container">
-    <p class="credits copyright">
-      <a href="https://schecterdamien.github.io/about">wujinjing</a>
-      &nbsp;&copy;
-      2021
-      
-      &nbsp;&ndash;&nbsp;
-      <em class="fas fa-moon" id="dark-mode-toggle"></em>
-    </p>
-
-    <p class="credits theme-by">
-       <a href="https://gohugo.io">Hugo</a>&nbsp;
-      
-      <a href="https://github.com/matsuyoshi30/harbor">Harbor</a>
-    </p>
   </div>
-</footer>
+</article>
 
-  </body>
+  <div class="foot">
+  
+  &copy; 2019 - 2022 &#183;
+  <a href="/"> Firsy </a> &#183;
+  Theme <a href="https://github.com/RainerChiang/simpleness">Simpleness</a> Powered by <a href="https://gohugo.io/">Hugo</a> &#183;
+  <a href="#"><i class="fas fa-chevron-up"></i></a>
+</div>
+</body>
+  <script src="/js/lazyload.min.js"></script>
+<script>
+  var lazyImage = new LazyLoad({container: document.getElementById('article')});
+</script>
+
+
+
+
 </html>

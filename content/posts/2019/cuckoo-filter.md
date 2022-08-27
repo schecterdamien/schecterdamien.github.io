@@ -2,7 +2,7 @@
 title: Cuckoo Filter
 date: 2019-04-17 23:34:49
 tags: ["算法"]
-menu: "main"
+menu: "posts"
 ---
 
 ### 比Bloom-filter更好的过滤器 ###
