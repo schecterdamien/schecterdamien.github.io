@@ -40,7 +40,7 @@ googleAnalytics = ""
   weight = 2
 
 [social]
-  github = "https://schecterdamien.github.io/"
+  github = "https://github.com/schecterdamien"
   rss = "index.xml"
 
 [taxonomies]
