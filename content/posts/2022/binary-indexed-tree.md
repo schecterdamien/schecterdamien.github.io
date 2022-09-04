@@ -21,12 +21,11 @@ menu: "posts"
 要解决以上问题，可以有以下几种思路
 
 + 最开始想到的，肯定就是直接基于原数组去暴力实现这几个函数，这样，add就是O(1)时间复杂度，predixSum就是O(n)时间复杂度，rangeSum(from_idx，to_idx)也是O(n)时间复杂度，但是一般这种是不符合要求的，本来就是要解决特定场景下的问题，查询的时间复杂度太高
-+ 或者再建立一个前缀和数组，每一位保存前面所有数的累加值，额外的空间复杂度是O（1），prefixSum(idx)时间复杂度是O(1)，rangeSum(from_idx，to_idx)=prefixSum(to_idx)-prefixSum(from_idx)时间复杂度为O(1)，但是add(idx，num)就需要更新idx到数组末尾的每一个位的值，时间复杂度O（n），除非add操作非常低频，否则这种做法也不合适
++ 或者再建立一个前缀和数组，每一位保存前面所有数的累加值，额外的空间复杂度是O（n），prefixSum(idx)时间复杂度是O(1)，rangeSum(from_idx，to_idx)=prefixSum(to_idx)-prefixSum(from_idx)时间复杂度为O(1)，但是add(idx，num)就需要更新idx到数组末尾的每一个位的值，时间复杂度O（n），除非add操作非常低频，否则这种做法也不合适
 
 数组数组这种数据结构能平衡求前缀和和更新操作，使之都是O（logn）时间复杂度，虽然需要额外的O（n）空间
 
 ### 怎么做到的
-
 
 ![image][pic1]
 
@@ -57,9 +56,9 @@ func lowBit(x int) int {
 
 + 树状数组序号为14（0b1110）的节点包括原数组从13（0b1101）到14（0b1110）的累加。
 + 去掉lowbit得到12（0b1100），树状数组序号为12的节点包括9（0b1001）到12（ob1100）的累加
-+ 再去掉一个lowbit，得到8（0b1000），树状数组序号为8的节点包括1到（0b1000）的累加。加起来刚好0-14的前缀和。
++ 再去掉一个lowbit，得到8（0b1000），树状数组序号为8的节点包括1到8（0b1000）的累加。加起来刚好0-14的前缀和。
 
-引用大佬的一张图（看参考链接）：
+数学证明引用大佬的一张图（看参考链接）：
 
 ![image][pic2]
 
@@ -69,46 +68,48 @@ func lowBit(x int) int {
 
 // 时间复杂度O(logn)
 func PrefixSum(tree []int, idx int) int {
-	sum := 0
-	for idx >= 1 {
-		sum += tree[idx]
-		idx -= lowBit(idx)
-	}
-	return sum
+       sum := 0
+       for idx >= 1 {
+              sum += tree[idx]
+              idx -= lowBit(idx)
+       }
+       return sum
 }
 ```
 
-从原数组建树有两种方式，一种O（n）复杂度，一种O（nlogn）复杂度
+从原数组建树有两种方式，一种O（nlogn）复杂度，一种O（n）复杂度
+
++ 第一种，其实就是利用上面说的规律三，也就是直接根据每个树状数组下标和原数组下标的关系构建起来的，注意，如上图，树状数组实际下标应该从1开始，所以在构建的时候下标要+1。
++ 第二种，是递增式分多次构建一个节点的值，每个节点在完成自己节点构建后，会把自己节点的值也加到父节点上，补齐父节点的值的一部分，这样按照正序遍历，只需要一次遍历就可以完成所有节点的构建，很巧妙
 
 ```golang
 // O(nlogn)时间复杂度建树
 func BuildBinaryIndexedTree(raw []int) []int {
-	tree := make([]int, len(raw)+1)
-	for i := 1; i <= len(raw); i++ {
-		tree[i] += raw[i-1]
-		for j := i - 2; j >= i-lowBit(i); j-- {
-			tree[i] += raw[j]
-		}
-	}
-	return tree
+       tree := make([]int, len(raw)+1)
+       for i := 1; i <= len(raw); i++ {
+              for j := i - lowBit(i); j <= i-1; j++ {
+                     tree[i] += raw[j]
+              }
+       }
+       return tree
 }
 
 func getParent(idx int) int {
-	low := lowBit(idx)
-	return idx + low
+       low := lowBit(idx)
+       return idx + low
 }
 
 // O(n)时间复杂度建树
 func BuildBinaryIndexedTree2(raw []int) []int {
-	tree := make([]int, len(raw)+1)
-	for i := 1; i <= len(raw); i++ {
-		tree[i] += raw[i-1]
-		parent := getParent(i)
-		if parent <= len(raw) {
-			tree[parent] += tree[i]
-		}
-	}
-	return tree
+       tree := make([]int, len(raw)+1)
+       for i := 1; i <= len(raw); i++ {
+              tree[i] += raw[i-1]
+              parent := getParent(i)
+              if parent <= len(raw) {
+                     tree[parent] += tree[i]
+              }
+       }
+       return tree
 }
 
 ```
@@ -118,10 +119,10 @@ func BuildBinaryIndexedTree2(raw []int) []int {
 
 // O（logn）时间复杂度
 func Add(tree []int, idx int, val int) {
-	for idx <= len(tree) {
-		tree[idx] += val
-		idx += lowBit(idx)
-	}
+       for idx <= len(tree) {
+              tree[idx] += val
+              idx += lowBit(idx)
+       }
 }
 ```
 
@@ -129,16 +130,16 @@ func Add(tree []int, idx int, val int) {
 ```golang
 // O(logn)时间复杂度
 func getChildren(idx int) []int {
-	low := lowBit(idx)
-	children := []int{idx}
+       low := lowBit(idx)
+       children := []int{idx}
 
-	base := idx - low
-	for low > 1 {
-		low >>= 1
-		base += low
-		children = append(children, base)
-	}
-	return children
+       base := idx - low
+       for low > 1 {
+              low >>= 1
+              base += low
+              children = append(children, base)
+       }
+       return children
 }
 ```
 
@@ -147,7 +148,7 @@ func getChildren(idx int) []int {
 ```golang
 // O(logn)时间复杂度
 func rangeSum(tree []int, start, end int) int {
-	return PrefixSum(tree, end) - PrefixSum(tree, start-1)
+       return PrefixSum(tree, end) - PrefixSum(tree, start-1)
 }
 ```
 
